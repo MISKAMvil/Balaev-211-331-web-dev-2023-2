@@ -60,20 +60,20 @@ def convert_config_to_dict(config_filename):
     podcom = []
     with open(config_filename) as file:
         for line in file:
-            for key, value in dictionary.items():
-                print("{0}: {1}".format(key,value))
-            print()
+            # for key, value in dictionary.items():
+            #     print("{0}: {1}".format(key,value))
+            # print()
             if (ignore_command(line, ignore) == True) or ('!' in line): 
                 continue
-            if line[0] == ' ':
-                podcom.append(line.strip())
+            if line[0] != ' ':
+                command = line.strip()
+                dictionary[command] = []
             else:
-                dictionary[line.strip()] = podcom
-                podcom = []
+                dictionary[command].append(line.strip())
         # print(dictionary)
         print()
-        # for key, value in dictionary.items():
-        #     print("{0}: {1}".format(key,value))
+        for key, value in dictionary.items():
+            print("{0}: {1}".format(key,value))
         print()
 
 convert_config_to_dict('config_sw2.txt')
