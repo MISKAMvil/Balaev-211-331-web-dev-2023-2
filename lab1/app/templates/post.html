@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="post">
+    <h1 class="my-4">{{ post.title }}</h1>
+    <h4>{{ post.author }}, {{ post.date.strftime('%d.%m.%Y') }}</h4>
+    <div class="d-flex justify-content-center my-4">
+        <img class="post-img" src="{{ url_for('static', filename='images/' + post.image_id) }}" alt="Post image">
+    </div>
+    <p class="viravnivanie">{{ post.text }}</p>
+</div>
+<form>
+    <header class="bg-secondary bg-opacity-10 pt-2 ps-3 rounded-top border-top border-start border-end border-1">
+        <label for="exampleFormControlTextarea1" class="form-label">Оставьте комментарий</label>
+    </header>
+    <div class="form-group border border-1 p-3">
+        <textarea class="form-control" id="exampleFormControlTextarea1" rows="3"></textarea>
+        <button type="submit" class="btn btn-primary mt-3">Отправить</button>
+    </div>
+</form>
+<div class="d-flex my-3">
+    <div class="flex-shrink-0">
+        <img class="rounded-circle" src="{{ url_for('static', filename='images/avatar.svg')}}" alt="Avatar">
+    </div>
+    <div class="flex-grow-1 ms-3">
+        <h5>{{ post.comments }}</h5>
+        <p>{{ post.comments.text }}</p>
+    </div>
+</div>
+{% endblock %}
