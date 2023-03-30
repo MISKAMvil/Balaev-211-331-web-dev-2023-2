@@ -14,3 +14,11 @@ body {
 .viravnivanie {
     text-align: justify;
 }
+
+/* .comment{
+    max-width: auto;
+} */
+
+.avatar-img {
+    max-width: 100%;
+}

@@ -18,13 +18,31 @@
         <button type="submit" class="btn btn-primary mt-3">Отправить</button>
     </div>
 </form>
-<div class="d-flex my-3">
-    <div class="flex-shrink-0">
-        <img class="rounded-circle" src="{{ url_for('static', filename='images/avatar.svg')}}" alt="Avatar">
+{% for comment in post.comments %}
+    <div class="comment d-flex flex-column">
+        <div class="row mt-4">
+            <div class="col-1">
+                <img class="rounded-circle avatar-img" src="{{ url_for('static', filename='images/avatar.svg')}}" alt="Avatar">
+            </div>
+            <div class="col-11">
+                <h5>{{ comment.author }}</h5>
+                <p>{{ comment.text }}</p>
+            </div>
+        </div>
+        {% if comment.replies %}
+            {% for reply in comment.replies %}
+            <div class="comment d-flex flex-column mb-4">
+                <div class="row mt-4 ms-5">
+                    <div class="comment col-1">
+                        <img class="rounded-circle avatar-img" src="{{ url_for('static', filename='images/avatar.svg')}}" alt="Avatar">
+                    </div>
+                    <div class="col-11">
+                        <h5>{{ reply.author }}</h5>
+                        <p>{{ reply.text }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
     </div>
-    <div class="flex-grow-1 ms-3">
-        <h5>{{ post.comments }}</h5>
-        <p>{{ post.comments.text }}</p>
-    </div>
-</div>
+    {% endfor %}
 {% endblock %}
