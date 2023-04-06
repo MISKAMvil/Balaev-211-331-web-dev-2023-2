@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+	<h4>Калькулятор</h4>
+	<form method="POST" class="mb-3">
+		<div class="mb-3">
+			<label class="form-label" for="firstnumber">Введите первое число</label>
+			<input class="form-control" type="text" name="firstnumber" id="firstnumber" value="{{ request.form.firstnumber }}">
+		</div>
+		<select name="operation" id="operation">
+			<option {% if request.form.operation == '+' %} selected {% endif %}>+</option>
+			<option {% if request.form.operation == '-' %} selected {% endif %}>-</option>
+			<option {% if request.form.operation == '*' %} selected {% endif %}>*</option>
+			<option {% if request.form.operation == '/' %} selected {% endif %}>/</option>
+		</select>
+		<div class="mb-3">
+			<label class="form-label" for="secondnumber">Введите второе число</label>
+			<input class="form-control" type="text" name="secondnumber" id="secondnumber" value="{{ request.form.secondnumber }}">
+		</div>
+		<button class="btn btn-primary">Вычислить результат</button>
+	</form>
+	<!-- Вывод результата -->
+	<div>
+		<label class="form-label" for="result">Результат</label>
+		<input class="form-control disable" type="text" name="result" id="result" value="{{ result }}">
+		<p class="text-danger">{{ error_text }}</p>
+	</div>
+{% endblock %}
