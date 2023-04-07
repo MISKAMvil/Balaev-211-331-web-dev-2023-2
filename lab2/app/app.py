@@ -93,15 +93,15 @@ def input_tel(tel):
     if check_digit(tel) == tel:
         if check_len(tel) == tel:
             message = 'Номер телефона верный'
-            bootstrap_class = {'is-valid' :'valid-feedback'}
+            bootstrap_class = {'is-valid': 'valid-feedback'}
             return message, tel, bootstrap_class
         else:
             message = 'Недопустимый ввод. Неверное количество цифр!'
-            bootstrap_class = {'is-invalid' :'invalid-feedback'}
+            bootstrap_class = {'is-invalid': 'invalid-feedback'}
             return message, None, bootstrap_class
     else:
         message = 'Недопустимый ввод. В номере телефона встречаются недопустимые символы!'
-        bootstrap_class = {'is-invalid' :'invalid-feedback'}
+        bootstrap_class = {'is-invalid': 'invalid-feedback'}
         return message, None, bootstrap_class
 
 # Функция преобразования номера телефона под стандартный вывод
@@ -128,8 +128,10 @@ def tel_form():
     message = ''
     tel = ''
     bootstrap_class = {}
+    phone_number = ''
     if request.method == 'POST':
-        phone_number = request.form['tel']
+        phone_number = str(request.form['tel'])
+        # print(phone_number)
         message, tel, bootstrap_class = input_tel(phone_number)
         if tel != None:
             tel = standart(tel)
@@ -138,6 +140,7 @@ def tel_form():
 
 # @app.route('/tel_form', methods=['GET', 'POST'])
 # def tel_form():
+#     phone_number = ''
 #     if request.method == 'POST':
 #         phone_number = request.form['tel']
 #     return render_template('tel_form.html', phone_number=phone_number)
