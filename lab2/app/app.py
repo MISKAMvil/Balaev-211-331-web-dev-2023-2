@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 from flask import make_response
 
 app = Flask(__name__)
+application = app
 
 @app.route('/')
 def index():
@@ -93,15 +94,15 @@ def input_tel(tel):
     if check_digit(tel) == tel:
         if check_len(tel) == tel:
             message = 'Номер телефона верный'
-            bootstrap_class = {'is-valid': 'valid-feedback'}
+            bootstrap_class = {'input_class': 'is-valid', 'div_class': 'valid-feedback'}
             return message, tel, bootstrap_class
         else:
             message = 'Недопустимый ввод. Неверное количество цифр!'
-            bootstrap_class = {'is-invalid': 'invalid-feedback'}
+            bootstrap_class = {'input_class': 'is-invalid', 'div_class': 'invalid-feedback'}
             return message, None, bootstrap_class
     else:
         message = 'Недопустимый ввод. В номере телефона встречаются недопустимые символы!'
-        bootstrap_class = {'is-invalid': 'invalid-feedback'}
+        bootstrap_class = {'input_class': 'is-invalid', 'div_class': 'invalid-feedback'}
         return message, None, bootstrap_class
 
 # Функция преобразования номера телефона под стандартный вывод
@@ -128,19 +129,15 @@ def tel_form():
     message = ''
     tel = ''
     bootstrap_class = {}
-    phone_number = ''
+    input_class, div_class = '', ''
     if request.method == 'POST':
         phone_number = str(request.form['tel'])
-        # print(phone_number)
         message, tel, bootstrap_class = input_tel(phone_number)
+        # Костыль ------->
+        input_class = bootstrap_class['input_class']
+        div_class = bootstrap_class['div_class']
+        # --------------->
         if tel != None:
             tel = standart(tel)
-    return render_template('tel_form.html', message=message, phone_number=tel, bootstrap_class=bootstrap_class)
-
-
-# @app.route('/tel_form', methods=['GET', 'POST'])
-# def tel_form():
-#     phone_number = ''
-#     if request.method == 'POST':
-#         phone_number = request.form['tel']
-#     return render_template('tel_form.html', phone_number=phone_number)
+    # return render_template('tel_form.html', message=message, phone_number=tel, bootstrap_class=bootstrap_class)
+    return render_template('tel_form.html', message=message, phone_number=tel, bootstrap_class=bootstrap_class, input_class=input_class, div_class=div_class)

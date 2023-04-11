@@ -5,19 +5,19 @@
 	<form method="POST" class="mb-3">
 		<div class="mb-3">
 			<label class="form-label" for="tel">Введите нормер телефона</label>
-			{% for input_class, div_class in bootstrap_class.items() %}
+			{# for class in bootstrap_class #}
 				<input class="form-control {{ input_class }}" type="text" name="tel" id="tel" value="{{ request.form.tel }}">
 				<div class="{{ div_class }}">
 					<p>{{ message }}</p>
 				</div>
-			{% endfor %}
+			{# endfor #}
 		</div>
 		<button class="btn btn-primary">Проверить</button>
 	</form>
 	<!-- Вывод результата -->
     <div class="mb-3">
 		<label class="form-label" for="result">Вывод результата проверки:</label>
-		<p>{{ message }} — {{ phone_number }}</p>
+		<p class="my-0">{{ message }} — {{ phone_number }}</p>
+		<p class="my-0">{{ bootstrap_class }}</p>
 	</div>
-	<p>{{ bootstrap_class }}</p>
 {% endblock %}
