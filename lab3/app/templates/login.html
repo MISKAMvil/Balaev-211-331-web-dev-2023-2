@@ -4,7 +4,7 @@
     <h4 class="mb-3">Аутентификация пользователей</h4>
     <form method="POST">
 		<div class="form-floating mb-3">
-			<input type="login" class="form-control" name="login" id="floatingInput" placeholder="Login">
+			<input type="login" class="form-control" name="login" id="floatingInput" placeholder="Login" value="{{ request.form.login }}">
 			<label for="floatingInput">Логин</label>
 		</div>
 		<div class="form-floating mb-3">

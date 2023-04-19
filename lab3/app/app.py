@@ -14,6 +14,10 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 # Даем приложению знать о существования логин менеджера
 
+login_manager.login_view = 'login'
+login_manager.login_message = 'Для доступа к этой странице нужно авторизироваться.'
+login_manager.login_message_category = 'warning'
+
 class User(UserMixin):
     def __init__(self, user_id, user_login):
         self.id = user_id
