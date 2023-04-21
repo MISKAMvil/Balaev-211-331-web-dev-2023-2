@@ -81,10 +81,12 @@ def check_digit(tel):
     else:
         None
 
-# Функция, которая проверяет длину номера телефона (только числа)
+# Функция, которая проверяет длину номера телефона (только числа) и проверка на 7,8 в 11 символах
 def check_len(tel):
-    if len(tel) == 10 or len(tel) == 11:
+    if len(tel) == 10:
         return tel
+    elif len(tel) == 11 and tel[0] != '7' or tel[0] != '8':
+        return None
     else:
         return None
 
@@ -110,19 +112,25 @@ def standart(tel):
     standart_phone_number = ''
     if len(tel) == 11:
         if tel[0] == '8':
-            standart_phone_number = tel[0]+'('+tel[1:4]+')'+tel[4:11]
+            # standart_phone_number = tel[0]+'('+tel[1:4]+')'+tel[4:11]
+            standart_phone_number = tel[0]+'-'+tel[1:4]+'-'+tel[4:7]+'-'+tel[7:9]+'-'+tel[9:11]
         elif tel[0] == '7':
-            standart_phone_number = '+'+tel[0]+' ('+tel[1:4]+') '+tel[4:7]+'-'+tel[7:9]+'-'+tel[9:11]
-        else:
-            standart_phone_number = tel[0:10]+' странный номер))'
+            # standart_phone_number = '+'+tel[0]+' ('+tel[1:4]+') '+tel[4:7]+'-'+tel[7:9]+'-'+tel[9:11]
+            standart_phone_number = '8-'+tel[1:4]+'-'+tel[4:7]+'-'+tel[7:9]+'-'+tel[9:11]
+        # else:
+            # standart_phone_number = tel[0:10]+' странный номер))'
     elif len(tel) == 10:
-        standart_phone_number = tel[0:3]+'.'+tel[3:6]+'.'+tel[6:8]+'.'+tel[8:10]
+        # standart_phone_number = tel[0:3]+'.'+tel[3:6]+'.'+tel[6:8]+'.'+tel[8:10]
+        standart_phone_number = '8-'+tel[0:3]+'-'+tel[3:6]+'-'+tel[6:8]+'-'+tel[8:10]
     return standart_phone_number
 
 # Пример:
 # +7 (123) 456-75-90
 # 8(123)4567590
 # 123.456.75.90
+
+# Вывод
+# 8-***-***-**-**
 
 @app.route('/tel_form', methods=['GET', 'POST'])
 def tel_form():

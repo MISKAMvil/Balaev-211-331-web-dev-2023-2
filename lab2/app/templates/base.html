@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" class="h-100">
 
 <head>
     <!-- Обязательные мета-теги -->
@@ -20,7 +20,7 @@
 
 </head>
 
-<body>
+<body class="d-flex flex-column h-100">
     <header class="mb-3">
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container">
@@ -65,7 +65,7 @@
         </nav>
     </header>
 
-    <main>
+    <main class="flex-shrink-0">
         <div class="container">
             {% block content %}
                 <h1>Содержимое по умолчанию</h1>
@@ -73,7 +73,7 @@
         </div>
     </main>
 
-    <footer class="py-3 mt-3 bg-dark">
+    <footer class="py-3 mt-auto bg-dark footer">
         <div class="container d-flex justify-content-center">
             <span class="text-light">© 2023 Балаев Максим Игоревич 211-331</span>
         </div>
