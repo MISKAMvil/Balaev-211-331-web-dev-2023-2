@@ -85,8 +85,8 @@ def check_digit(tel):
 def check_len(tel):
     if len(tel) == 10:
         return tel
-    elif len(tel) == 11 and tel[0] != '7' or tel[0] != '8':
-        return None
+    elif len(tel) == 11 and (tel[0] == '7' or tel[0] == '8'):
+        return tel
     else:
         return None
 
