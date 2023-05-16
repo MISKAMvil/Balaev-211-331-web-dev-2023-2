@@ -72,8 +72,8 @@ def convert_config_to_dict(config_filename):
                 dictionary[command].append(line.strip())
         # print(dictionary)
         print()
-        for key, value in dictionary.items():
-            print("{0}: {1}".format(key,value))
-        print()
+    return dictionary
 
-convert_config_to_dict('config_sw2.txt')
+final_dict = convert_config_to_dict('config_sw2.txt')
+for key, value in final_dict.items():
+    print("{0}: {1}".format(key,value))

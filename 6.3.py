@@ -58,8 +58,6 @@ for intf, vlan in access.items():
         else:
             print(f" {command}")
 
-print(f"{trunk[0/1]}")
-
 print()
 for intf, vlans in trunk.items():
     print("interface FastEthernet" + intf)

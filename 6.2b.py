@@ -14,14 +14,15 @@ while flag == False:
         for octet in octets:
             if not (octet.isdigit() and int(octet) >= 0 and int(octet) <= 255):
                 flag = False
-                print('Неправильный IP-адрес')
+                print('IP-адрес записан неверно')
+                break
             else: 
                 flag = True
-                print('IP-адрес записан верно')
-                break
+        if flag == True:
+            print('IP-адрес записан верно')
     else: 
         flag = False
-        print('Неправильный IP-адрес')
+        print('IP-адрес записан неверно')
 
 if flag:
     f_ip = int(octets[0])
