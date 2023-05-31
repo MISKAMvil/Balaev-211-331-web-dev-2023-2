@@ -35,6 +35,11 @@
                             <!-- <a class="nav-link {# if request.endpoint == 'index' #} active {# endif #}" href="{# url_for('index') #}">Главная страничка</a> -->
                             <!-- class="active" добавляется только активным ссылкам -->
                         <!-- </li> -->
+
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'users' %} active {% endif %}" href="{{ url_for('users') }}">Пользователи</a>
+                        </li>
+
                         <li class="nav-item">
                             {% if current_user.is_authenticated %}
                                 <a class="nav-link {% if request.endpoint == 'login' %} active {% endif %}" href="{{ url_for('logout') }}">Выход</a>
