@@ -41,7 +41,7 @@
 				{% for role in roles_list %}
 					<!-- role.id - значение, которое будет отправляться на сервер -->
 					<!-- приводим role.id к str, чтобы избежать багов -->
-					<option {% if user.role_id == role.id | string %} selected {% endif %} value="{{ role.id }}">{{ role.name }}</option>
+					<option {% if user.role_id | string == role.id | string %} selected {% endif %} value="{{ role.id }}">{{ role.name }}</option>
 				{% endfor %}
 			</select>
 		</div>

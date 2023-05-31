@@ -5,6 +5,8 @@ import mysql.connector
 
 # Ограничение на список параметров для извлечения
 PERMITED_PARAMS = ['login', 'password', 'last_name', 'first_name', 'middle_name', 'role_id']
+# Список параметров разрешенных для редактирования
+EDIT_PARAMS = ['last_name', 'first_name', 'middle_name', 'role_id']
 
 app = Flask(__name__)
 # Создаем экземпляр приложения
@@ -150,11 +152,11 @@ def create_user():
     return redirect(url_for('users'))
 
 # Страничка для изменения пользователя
-@app.route('/user/<int:user_id>/update')
+@app.route('/users/<int:user_id>/update', methods=['POST'])
 @login_required # для того, чтобы только авторизованный пользователь мог отправить данные по этому руту
 def update_user(user_id):
     # Получение данных из запроса
-    params = extract_params(PERMITED_PARAMS)
+    params = extract_params(EDIT_PARAMS)
     params['id'] = user_id
     # Запрос для отправления данных в БД
     query = ('UPDATE users SET last_name=%(last_name)s, first_name=%(first_name)s, '
@@ -193,6 +195,43 @@ def edit_user(user_id):
         # Метод fetchone() возвращает либо None, если результат пустой, либо кортеж с найденной записью, если что-то нашлось
         user = cursor.fetchone()
     return render_template('users_edit.html', user=user, roles_list=load_roles())
+    # user передает данные пользователя, которые затем мы подставим в html
+
+# Страничка для просмотра пользователя
+@app.route('/user/<int:user_id>')
+def show_user(user_id):
+    # SQL-запрос к базе данных, вывод всех пользователей
+    query = 'SELECT * FROM users WHERE users.id = %s'
+    # C помощью with можно не закрывать cursor как делали это в load_user, это будет сделано автоматически
+    with db.connection().cursor(named_tuple=True) as cursor:
+        # Подставляем в верхний запрос при помощи метода execute(принимает аргумен-запрос, передаем кортеж(tuple) со значениями)
+        cursor.execute(query, (user_id,)) # кортеж с одним элементом мохдается благодаря ЗАПЯТОЙ на конце, иначе работать не будет
+        # print(cursor.statement) - ввыводит какой запрос был выполнен в БД
+        print(cursor.statement)
+        # Метод fetchone() возвращает либо None, если результат пустой, либо кортеж с найденной записью, если что-то нашлось
+        user = cursor.fetchone()
+    return render_template('users_show.html', user=user)
+    # user передает данные пользователя, которые затем мы подставим в html
+
+# Страничка удаления пользователей
+@app.route('/users/<int:user_id>/delete' ,methods=['POST'])
+@login_required # для того, чтобы только авторизованный пользователь мог отправить данные по этому руту
+def delete_user(user_id):
+    # SQL-запрос к базе данных, вывод всех пользователей
+    query = 'DELETE FROM users WHERE users.id=%s;'
+    # Для перехвата ошибок (если ввели неуникальный логин) оборачиваем выполнение запроса в try
+    try:
+        # C помощью with можно не закрывать cursor как делали это в load_user, это будет сделано автоматически
+        with db.connection().cursor(named_tuple=True) as cursor:
+            # Подставляем в верхний запрос при помощи метода execute(принимает аргумен-запрос, передаем кортеж(tuple) со значениями)
+            cursor.execute(query, (user_id,)) # кортеж с одним элементом мохдается благодаря ЗАПЯТОЙ на конце, иначе работать не будет
+            # print(cursor.statement) - ввыводит какой запрос был выполнен в БД
+            print(cursor.statement)
+        flash('Пользователь успешно удален.', 'success')
+    except mysql.connector.errors.DatabaseError:
+        db.connection().rollback()
+        flash('При удалении пользователя возникла ошибка.', 'danger')
+    return redirect(url_for('users'))
     # user передает данные пользователя, которые затем мы подставим в html
 
 @app.route('/logout', methods=['GET'])
