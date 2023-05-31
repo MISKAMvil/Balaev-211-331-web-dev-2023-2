@@ -1,20 +1,23 @@
-
 from flask import Flask, render_template, session, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
 from mysql_db import MySQL
-import mysql.connector
-PERMITED_PARAMS = ['login', 'password', 'last_name', 'first_name', 'middle_name', 'role_id']
-EDIT_PARAMS = ['last_name', 'first_name', 'middle_name', 'role_id']
 
 app = Flask(__name__)
+# Создаем экземпляр приложения
 application = app
+# Пишем, чтобы на хостинге всё запускалось
 
+# Нужен секретный ключ, чтобы работать с сессией. Сам ключ генерируем в отдельном файле и импортируем его.
 app.config.from_pyfile('config.py')
 
+# Создаем объект класса MySQL
 db = MySQL(app)
 
 login_manager = LoginManager()
+# Создан экземпляр класса
 login_manager.init_app(app)
+# Даем приложению знать о существования логин менеджера
+
 login_manager.login_view = 'login'
 login_manager.login_message = 'Для доступа к этой странице нужно авторизироваться.'
 login_manager.login_message_category = 'warning'
@@ -24,10 +27,12 @@ class User(UserMixin):
         self.id = user_id
         self.login = user_login
 
+# Главная страничка
 @app.route('/')
 def index():
     return render_template('index.html')
 
+# Страница c аутентификация пользователей
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -35,15 +40,20 @@ def login():
         password = request.form['password']
         remember = request.form.get('remember_me') == 'on'
 
+        # SQL-запрос к базе данных, пароль хешируется предварительно
         query = 'SELECT * FROM users WHERE login = %s and password_hash = SHA2(%s, 256);'
-
+        
         # 1' or '1' = '1' LIMIT 1#
         # user'#
         # query = f"SELECT * FROM users WHERE login = '{login}' and password_hash = SHA2('{password}', 256);"
+
+        # C помощью with можно не закрывать cursor как делали это в load_user, это будет сделано автоматически
         with db.connection().cursor(named_tuple=True) as cursor:
-            cursor.execute(query, (login, password))
-            # cursor.execute(query)
+            # Подставляем в верхний запрос (под %s) при помощи метода execute(принимает аргумен-запрос, передаем кортеж(tuple) со значениями)
+            cursor.execute(query, (login, password)) # кортеж с одним элементом мохдается благодаря ЗАПЯТОЙ на конце, иначе работать не будет
+            # print(cursor.statement) - ввыводит какой запрос был выполнен в БД
             print(cursor.statement)
+            # Метод fetchone() возвращает либо None, если результат пустой, либо кортеж с найденной записью, если что-то нашлось
             user = cursor.fetchone()
 
         if user:
@@ -54,119 +64,28 @@ def login():
         flash('Введён неправильный логин или пароль.', 'danger')
     return render_template('login.html')
 
-@app.route('/users')
-def users():
-    query = 'SELECT users.*, roles.name AS role_name FROM users LEFT JOIN roles ON roles.id = users.role_id'
-    with db.connection().cursor(named_tuple=True) as cursor:
-        cursor.execute(query)
-        users_list = cursor.fetchall()
-    
-    return render_template('users.html', users_list=users_list)
-
-@app.route('/users/new')
-@login_required
-def users_new():
-    roles_list = load_roles()
-    return render_template('users_new.html', roles_list=roles_list, user={})
-
-def load_roles():
-    query = 'SELECT * FROM roles;'
-    cursor = db.connection().cursor(named_tuple=True)
-    cursor.execute(query)
-    roles = cursor.fetchall()
-    cursor.close()
-    return roles
-
-def extract_params(params_list):
-    params_dict = {}
-    for param in params_list:
-        params_dict[param] = request.form[param] or None
-    return params_dict
-
-@app.route('/users/create', methods=['POST'])
-@login_required
-def create_user():
-    params = extract_params(PERMITED_PARAMS)
-    query = 'INSERT INTO users(login, password_hash, last_name, first_name, middle_name, role_id) VALUES (%(login)s, SHA2(%(password)s, 256), %(last_name)s, %(first_name)s, %(middle_name)s, %(role_id)s);'
-    try:
-        with db.connection().cursor(named_tuple=True) as cursor:
-            cursor.execute(query, params)
-            db.connection().commit()
-            flash('Успешно!', 'success')
-    except mysql.connector.errors.DatabaseError:
-        db.connection().rollback()
-        flash('При сохранении данных возникла ошибка.', 'danger')
-        return render_template('users_new.html', user = params, roles_list = load_roles())
-    
-    return redirect(url_for('users'))
-
-@app.route('/users/<int:user_id>/update', methods=['POST'])
-@login_required
-def update_user(user_id):
-    params = extract_params(EDIT_PARAMS)
-    params['id'] = user_id
-    query = ('UPDATE users SET last_name=%(last_name)s, first_name=%(first_name)s, '
-             'middle_name=%(middle_name)s, role_id=%(role_id)s WHERE id=%(id)s;')
-    try:
-        with db.connection().cursor(named_tuple=True) as cursor:
-            cursor.execute(query, params)
-            db.connection().commit()
-            flash('Успешно!', 'success')
-    except mysql.connector.errors.DatabaseError:
-        db.connection().rollback()
-        flash('При сохранении данных возникла ошибка.', 'danger')
-        return render_template('users_edit.html', user = params, roles_list = load_roles())
-
-    return redirect(url_for('users'))
-
-@app.route('/users/<int:user_id>/edit')
-@login_required
-def edit_user(user_id):
-    query = 'SELECT * FROM users WHERE users.id = %s;'
-    cursor = db.connection().cursor(named_tuple=True)
-    cursor.execute(query, (user_id,))
-    user = cursor.fetchone()
-    cursor.close()
-    return render_template('users_edit.html', user=user, roles_list = load_roles())
-
-
-@app.route('/users/<int:user_id>/delete', methods=['POST'])
-@login_required
-def delete_user(user_id):
-    query = 'DELETE FROM users WHERE users.id=%s;'
-    try:
-        cursor = db.connection().cursor(named_tuple=True)
-        cursor.execute(query, (user_id,))
-        db.connection().commit()
-        cursor.close()
-        flash('Пользователь успешно удален', 'success')
-    except mysql.connector.errors.DatabaseError:
-        db.connection().rollback()
-        flash('При удалении пользователя возникла ошибка.', 'danger')
-    return redirect(url_for('users'))
-
-
-@app.route('/user/<int:user_id>')
-def show_user(user_id):
-    query = 'SELECT * FROM users WHERE users.id = %s;'
-    cursor = db.connection().cursor(named_tuple=True)
-    cursor.execute(query, (user_id,))
-    user = cursor.fetchone()
-    cursor.close()
-    return render_template('users_show.html', user=user)
-
 @app.route('/logout', methods=['GET'])
 def logout():
     logout_user()
     return redirect(url_for('index'))
 
+# Функция загрузки пользователя по идентификатору из БД
 @login_manager.user_loader
 def load_user(user_id):
+    # SQL-запрос к базе данных / %s работает как .format() - позволяет подставлять значение 
     query = 'SELECT * FROM users WHERE users.id = %s;'
-    cursor = db.connection().cursor(named_tuple=True)
-    cursor.execute(query, (user_id,))
+    # У объекта соединения есть метод курсор. Через метод cursor выпонлятся запрос
+    cursor = db.connection().cursor(named_tuple=True) # named_tuple=True - позволяет обращаться далее по названию полей таблицы БД
+    # Подставляем в верхний запрос (под %s) при помощи метода execute(принимает аргумен-запрос, передаем кортеж(tuple) со значениями)
+    cursor.execute(query, (user_id,)) # кортеж с одним элементом мохдается благодаря ЗАПЯТОЙ на конце, иначе работать не будет
+    # Метод fetchone() возвращает либо None, если результат пустой, либо кортеж с найденной записью, если что-то нашлось
     user = cursor.fetchone()
+    # После всех манипуляций закрываем метод cursor
     cursor.close()
+    # Далее идет проверка
+    # Если нашелся прользователь в БД по такому id, то возвращается объект класса user с данными этого пользователя
+    # Если не нашелся, то возвращается None
     if user:
+        # Возвращает id пользователя и его логин
         return User(user.id, user.login)
     return None
