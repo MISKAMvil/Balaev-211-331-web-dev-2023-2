@@ -1,5 +1,18 @@
 {% extends 'base.html' %}
 
+{% block head %}
+
+{{ super() }}
+<!-- super() используется в Python для вызова методов родительского класса.
+	Это может быть полезным, когда мы переопределяем методы в дочернем классе
+	и все еще хотим использовать логику родительского класса. Используя
+	super(), мы можем избежать дублирования кода и сохранить нашу дочернюю
+	реализацию относительно компактной и эффективной -->
+
+<script defer src="{{ url_for('static', filename='users.js') }}"></script>
+<!-- defer - выполняет скрипт после подгрузки всей страницы -->
+{% endblock %}
+
 {% block content %}
 	<h4 class="mb-3">Пользователи</h4>
 	<table class="table">
@@ -7,9 +20,7 @@
 		<thead>
 			<tr>
 				<th>№</th>
-				<th>Фамилия</th>
-				<th>Имя</th>
-				<th>Отчество</th>
+				<th>ФИО</th>
 				<th>Логин</th>
 				<th>Роль</th>
 				<th>Действие</th>
@@ -21,14 +32,11 @@
 					<!-- loop.index просто создает итерацию 1,2,3,4... -->
 					<td>{{ loop.index }}</td> 
 					<!-- А далее просто берет элементы кортежа по списку -->
-					<td>{{ user.last_name }}</td>
-					<td>{{ user.first_name }}</td>
-					<td>
+					<td id="fullName">
+						{{ user.last_name }}
+						{{ user.first_name }}
 						{% if user.middle_name %}
 							{{ user.middle_name }}
-						<!-- {# else #}
-							— -->
-							<!-- Можно сделать пустой строкой в таблице, для этого надо стереть всю конструкцию находящуюся в else  -->
 						{% endif %}
 					</td>
 					<td>{{ user.login }}</td>
@@ -38,7 +46,7 @@
 							<a class="btn btn-success" href="{{ url_for('show_user', user_id=user.id) }}">Просмотр</a>
 							{% if current_user.is_authenticated %}
 								<a class="btn btn-primary" href="{{ url_for('edit_user', user_id=user.id) }}">Редактировать</a>
-								<button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteUser">Удалить</button>
+								<button class="btn btn-danger" data-bs-toggle="modal" data-url="{{ url_for('delete_user', user_id = user.id) }}" data-bs-target="#deleteUser">Удалить</button>
 							{% endif %}
 
 							<!-- Модальное окно -->
@@ -54,13 +62,13 @@
 									<div class="modal-body">
 										<p>Вы уверены, что хотите удалить пользователя <span id="userLogin"></span>?</p>
 										<form class="d-none" action="" method="POST">
-											<input type="submit">
+											<input type="submit" id="deleteUserButton">
 										</form>
 									</div>
 									<div class="modal-footer">
 										<button type="button" class="btn btn-secondary"
 											data-bs-dismiss="modal">Отмена</button>
-										<button type="button" class="btn btn-danger">Удалить</button>
+										<label for="deleteUserButton" class="btn btn-danger">Удалить</label>
 									</div>
 								</div>
 							</div>

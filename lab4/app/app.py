@@ -214,7 +214,7 @@ def show_user(user_id):
     # user передает данные пользователя, которые затем мы подставим в html
 
 # Страничка удаления пользователей
-@app.route('/users/<int:user_id>/delete' ,methods=['POST'])
+@app.route('/users/<int:user_id>/delete', methods=['POST'])
 @login_required # для того, чтобы только авторизованный пользователь мог отправить данные по этому руту
 def delete_user(user_id):
     # SQL-запрос к базе данных, вывод всех пользователей
@@ -225,6 +225,8 @@ def delete_user(user_id):
         with db.connection().cursor(named_tuple=True) as cursor:
             # Подставляем в верхний запрос при помощи метода execute(принимает аргумен-запрос, передаем кортеж(tuple) со значениями)
             cursor.execute(query, (user_id,)) # кортеж с одним элементом мохдается благодаря ЗАПЯТОЙ на конце, иначе работать не будет
+            # .commit() - для окончательного добавления записи в БД
+            db.connection().commit()
             # print(cursor.statement) - ввыводит какой запрос был выполнен в БД
             print(cursor.statement)
         flash('Пользователь успешно удален.', 'success')
