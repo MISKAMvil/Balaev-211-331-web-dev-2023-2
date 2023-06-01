@@ -279,26 +279,37 @@ def check_password_upper_lower(password):
     for symb in password:
         if symb.isupper():
             status_upper = True
-            # break
     for symb in password:
         if symb.islower():
             status_lower = True
-            # break
     if (status_upper == True) and (status_lower == True):
         message = None
     else:
         message = 'В пароле должна присутствовать как минимум одна заглавная и одна строчная буква'
     return message
 
-# Проверка, что ввели только латинские или кириллические буквы (тире не проходит)
-def check_password_cyrillic_latin(password):
-    if password.isalnum() or password: # не понял как, но почему-то работает
-        message = None
+# Проверка, что ввели латинские или кириллические буквы И спецсимволы ~!?@#$%^&*_-+()[]{}></\|"'.,:;
+def check_password_cyrillic_latin_special_symb(password):
+    # Для простоты проверки удаляем из пароля все цифры и пробелы
+    password_without_numbers = ''
+    for symb in password:
+        if (symb.isdigit() == False) and (symb != ' '):
+            password_without_numbers = password_without_numbers + symb.lower() # приводим к одному регистру для сравнения
+    # Основной алгоритм проверки
+    cyrillic_symb = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
+    latin_symb = 'abcdefghijklmnopqrstuvwxyz'
+    special_symb = '''~!?@#$%^&*_-+()[]{}></\|"'.,:;'''
+    status_symb = True
+    for symb in password_without_numbers:
+        if not((symb in cyrillic_symb) or (symb in latin_symb) or (symb in special_symb)):
+            status_symb = False
+    if status_symb == False:
+        message = 'В пароле должны присутствовать латинские или кириллические буквы'
     else:
-        message = 'Пароль должен состоять только из латинских или кириллических букв'
+        message = None
     return message
 
-# Проверка, есть ли в пароле минимальное колличество цифр
+# Проверка, есть ли в пароле минимальное колличество арабских цифр
 def check_password_min_num_of_digit(password):
     status_digit = False
     for symb in password:
@@ -322,53 +333,58 @@ def check_password_space(password):
         message = 'В пароле не должно быть пробелов'
     return message
 
-def change_password_special_symb(password):
-    special_symb = ['~', '!', '?', '@', '#', '$', '%', '^', '&', '*', '_', '-', '+', '(', ')', '[', ']', '{', '}', '>', '<', '/', '\','|' '\"\ ' . ',' ':' '';']
-
 # Страничка с изменением парроля
 @app.route('/changepassword', methods=['GET', 'POST'])
 @login_required # для того, чтобы только авторизованный пользователь мог отправить данные по этому руту
 def change_password():
     old_password = ''
-    message = ''
-    input_class, div_class = '', ''
-    
+    message, input_class, div_class = '', '', ''
+    confirm_password = ''
+    confirm_message, confirm_input_class, confirm_div_class = '', '', ''
     bootstrap_class_green = {'input_class': 'is-valid', 'div_class': 'valid-feedback'}
     bootstrap_class_red = {'input_class': 'is-invalid', 'div_class': 'invalid-feedback'}
 
     if request.method == 'POST':
         new_password = str(request.form['new_password'])
         message = None
+        # Выполнение всех функций по порядку
         while message == None:
             message = check_password_len(new_password)
-            break
-        while message == None:
-            message = check_password_upper_lower(new_password)
-            break
-        while message == None:
-            message = check_password_cyrillic_latin(new_password)
             break
         while message == None:
             message = check_password_min_num_of_digit(new_password)
             break
         while message == None:
+            message = check_password_cyrillic_latin_special_symb(new_password)
+            break
+        while message == None:
+            message = check_password_upper_lower(new_password)
+            break
+        while message == None:
             message = check_password_space(new_password)
             break
 
-    if message == None:
-        message = 'Пароль удовлетворяет всем требованиям'
+        if message == None:
+            message = 'Пароль удовлетворяет всем требованиям'
+            input_class = bootstrap_class_green['input_class']
+            div_class = bootstrap_class_green['div_class']
+        # elif, чтобы по умолчанию не подсвечивалось поле
+        elif message == '':
+            input_class = ''
+            div_class = ''
+        else:
+            input_class = bootstrap_class_red['input_class']
+            div_class = bootstrap_class_red['div_class']
 
-        input_class = bootstrap_class_green['input_class']
-        div_class = bootstrap_class_green['div_class']
+        # Повтор нового пароля, нахождение соответствия
+        confirm_password = str(request.form['confirm_password'])
+        if new_password == confirm_password and message == 'Пароль удовлетворяет всем требованиям':
+            confirm_message = 'Повтор пароля записан верно'
+            confirm_input_class = bootstrap_class_green['input_class']
+            confirm_div_class = bootstrap_class_green['div_class']
+        elif new_password != confirm_password:
+            confirm_message = 'Повтор пароля записан неверно'
+            confirm_input_class = bootstrap_class_red['input_class']
+            confirm_div_class = bootstrap_class_red['div_class']
 
-    # elif, чтобы по умолчанию не подсвечивалось поле
-    elif message == '':
-        input_class = ''
-        div_class = ''
-
-    else:
-        input_class = bootstrap_class_red['input_class']
-        div_class = bootstrap_class_red['div_class']
-
-    return render_template('change_password.html', old_password=old_password, message=message, input_class=input_class, div_class=div_class)
-
+    return render_template('change_password.html', old_password=old_password, message=message, input_class=input_class, div_class=div_class, confirm_message=confirm_message, confirm_input_class=confirm_input_class, confirm_div_class=confirm_div_class)
