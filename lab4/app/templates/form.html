@@ -1,6 +1,6 @@
 {% macro user_form(user, action, roles_list) %}
 <!-- макрос позволяет не дублировать код -->
-<form method="POST" action="{{ action }}">
+<form method="POST" class="mb-3" action="{{ action }}">
 	{% if request.endpoint == 'users_new' or request.endpoint == 'create_user' %}
 	<div class="row mb-3">
 		<label for="login" class="col-sm-2 col-form-label">Логин</label>
