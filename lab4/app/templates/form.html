@@ -5,26 +5,26 @@
 	<div class="row mb-3">
 		<label for="login" class="col-sm-2 col-form-label">Логин</label>
 		<div class="col-sm-10">
-			<input type="text" name="login" class="form-control" id="login" value="{{ user.login or '' }}">
+			<input type="text" name="login" class="form-control" id="login" value="{{ user.login or '' }}" required>
 		</div>
 	</div>
 	<div class="row mb-3">
 		<label for="password" class="col-sm-2 col-form-label">Пароль</label>
 		<div class="col-sm-10">
-			<input type="password" name="password" class="form-control" id="password" value="{{ user.password or '' }}">
+			<input type="password" name="password" class="form-control" id="password" value="{{ user.password or '' }}" required>
 		</div>
 	</div>
 	{% endif %}
 	<div class="row mb-3">
 		<label for="last_name" class="col-sm-2 col-form-label">Фамилия</label>
 		<div class="col-sm-10">
-			<input type="text" name="last_name" class="form-control" id="last_name" value="{{ user.last_name or '' }}">
+			<input type="text" name="last_name" class="form-control" id="last_name" value="{{ user.last_name or '' }}" required>
 		</div>
 	</div>
 	<div class="row mb-3">
 		<label for="first_name" class="col-sm-2 col-form-label">Имя</label>
 		<div class="col-sm-10">
-			<input type="text" name="first_name" class="form-control" id="first_name" value="{{ user.first_name or '' }}">
+			<input type="text" name="first_name" class="form-control" id="first_name" value="{{ user.first_name or '' }}" required>
 		</div>
 	</div>
 	<div class="row mb-3">

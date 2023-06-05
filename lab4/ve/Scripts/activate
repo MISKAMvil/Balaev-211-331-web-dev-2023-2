@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="D:\web23\lab2023\lab4\ve"
+VIRTUAL_ENV="C:\Users\MISKAMvil\Desktop\lab4\ve"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
