@@ -29,7 +29,7 @@
         </tr>
         <tr>
             <td>Роль</td>
-            <td>{{user.role_id or ''}}</td>
+            <td>{% if user.role_id == 1 %} Пользователь {% elif user.role_id == 2 %} Администратор {% endif %}</td>
         </tr>
     </tbody>
 </table>

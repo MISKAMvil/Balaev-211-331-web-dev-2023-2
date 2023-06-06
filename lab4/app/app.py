@@ -29,22 +29,17 @@ login_manager.login_view = 'login'
 login_manager.login_message = 'Для доступа к этой странице нужно авторизироваться.'
 login_manager.login_message_category = 'warning'
 
-
 class User(UserMixin):
     def __init__(self, user_id, user_login):
         self.id = user_id
         self.login = user_login
 
 # Главная страничка
-
-
 @app.route('/')
 def index():
     return render_template('index.html')
 
 # Страница c аутентификация пользователей
-
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -78,8 +73,6 @@ def login():
     return render_template('login.html')
 
 # Страничка с пользователями
-
-
 @app.route('/users')
 def users():
     # SQL-запрос к базе данных, вывод всех пользователей
@@ -96,8 +89,6 @@ def users():
     return render_template('users.html', users_list=users_list)
 
 # Страничка с добавлением пользователя
-
-
 @app.route('/users/new')
 @login_required  # для того, чтобы только авторизованный пользователь мог отправить данные по этому руту
 def users_new():
@@ -105,10 +96,8 @@ def users_new():
     return render_template('users_new.html', roles_list=roles_list, user={})
 
 # Функция, которая загружает данные ролей из БД
-
-
 def load_roles():
-    # SQL-запрос к базе данных, вывод всех пользователей
+    # SQL-запрос к базе данных
     query = 'SELECT * FROM roles'
     # C помощью with можно не закрывать cursor как делали это в load_user, это будет сделано автоматически
     with db.connection().cursor(named_tuple=True) as cursor:
@@ -123,8 +112,6 @@ def load_roles():
 
 # Функция, которая извлекает из запроса нужные параметры и складывает их в словарь, а затем возвращает его
 # В качестве агрумента передается список параметров (params_list), которые мы хотим извлечь из запроса
-
-
 def extract_params(params_list):
     params_dict = {}
     for param in params_list:
@@ -132,15 +119,78 @@ def extract_params(params_list):
         # or None используется для избегания бага с добавлением в БД пустой строки
     return params_dict
 
+# ------------------------------------------------------------------------------------------------
+
+# Проверка логина на длину
+def check_login_len(login):
+    if len(login) < 5:
+        message = 'Логин должен иметь длину не менее 5 символов'
+    else:
+        message = None
+    return message
+
+# Проверка, состоит ли пароль только из латинских букв и цифр
+def check_login_latin(login):
+    message = None
+    latin_symb = 'abcdefghijklmnopqrstuvwxyz'
+    # Для простоты проверки удаляем из пароля все цифры и пробелы
+    login_without_numbers = ''
+    for symb in login:
+        if (symb.isdigit() == False) and (symb != ' '):
+            login_without_numbers = login_without_numbers + symb.lower()  # приводим к одному регистру для сравнения
+    # Сам алгоритм проверки
+    for symb in login_without_numbers:
+        if not (symb in latin_symb):
+            message = 'Логин должен состоять только из латинских букв и цифр'
+            break
+        else:
+            message = None
+    return message
+
+# Все проверки пароля и вывод сообщения под полем ввода
+def all_check_login(login):
+    input_class, div_class = '', ''
+    bootstrap_class_green = {
+        'input_class': 'is-valid', 'div_class': 'valid-feedback'}
+    bootstrap_class_red = {'input_class': 'is-invalid',
+                           'div_class': 'invalid-feedback'}
+
+    message = None
+    # Выполнение всех функций по порядку
+    while message == None:
+        message = check_login_len(login)
+        break
+    while message == None:
+        message = check_login_latin(login)
+        break
+
+    # Вывод сообщения под полем ввода
+    if message == None:
+        message = 'Логин удовлетворяет всем требованиям'
+        input_class = bootstrap_class_green['input_class']
+        div_class = bootstrap_class_green['div_class']
+    # elif, чтобы по умолчанию не подсвечивалось поле
+    elif message == '':
+        input_class = ''
+        div_class = ''
+    else:
+        input_class = bootstrap_class_red['input_class']
+        div_class = bootstrap_class_red['div_class']
+
+    return input_class, div_class, message
+
+# ------------------------------------------------------------------------------------------------
+
 # Сохранение данных нового пользователя
-
-
 @app.route('/users/create', methods=['POST'])
 @login_required  # для того, чтобы только авторизованный пользователь мог отправить данные по этому руту
 def create_user():
+    input_class, div_class, message = None, None, None
+    password_input_class, password_div_class, password_message = None, None, None
+    
     # Получение данных из запроса
     params = extract_params(PERMITED_PARAMS)
-    # -------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------
     # ДАЛЕЕ ЗАКОМЕНТИРОВАННЫЙ КОД НЕ ИСПОЛЬЗУЕТСЯ, Т,К ВМЕСТО НЕГО ЕСТЬ ФУН-ИЯ (extract_params)
     # or None используется для избегания бага с добавлением в БД пустой строки
     # login = request.form['login'] or None
@@ -149,32 +199,61 @@ def create_user():
     # first_name = request.form['first_name'] or None
     # middle_name = request.form['middle_name'] or None
     # role_id = request.form['role_id'] or None
-    # -------------------------------------------------------------------------
-    # Запрос для отправления данных в БД
-    # с помощью конструкции %()s подставляем из словаря
-    query = 'INSERT INTO users (login, password_hash, last_name, first_name, middle_name, role_id) VALUES (%(login)s, SHA2(%(password)s, 256), %(last_name)s, %(first_name)s, %(middle_name)s, %(role_id)s);'
-    # Для перехвата ошибок (если ввели неуникальный логин) оборачиваем выполнение запроса в try
-    try:
-        # C помощью with можно не закрывать cursor как делали это в load_user, это будет сделано автоматически
-        with db.connection().cursor(named_tuple=True) as cursor:
-            # Подставляем в верхний запрос при помощи метода execute(принимает аргумен-запрос, передаем кортеж(tuple) со значениями)
-            cursor.execute(query, params)
-            # .commit() - для окончательного добавления записи в БД
-            db.connection().commit()
-            flash('Обработка данных прошла успешно!', 'success')
-    # mysql.connector.errors.DatabaseError - базовый класс для всех ошибок с БД (нарушение целостности, соединения и тд.)
-    except mysql.connector.errors.DatabaseError:
-        # Если случались ошибка, то идет откатить ти изменения, что были внесены до этого
-        db.connection().rollback()  # для этого используется метод rollback()
-        flash('При сохранении данных возникла ошибка.', 'danger')
-        # передается список ролей для рендеринга
-        return render_template('users_new.html', user=params, roles_list=load_roles())
-        # user=params, чтобы данный вставлялись в форму в случае ошибки
+    # --------------------------------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------------------------
+    input_class, div_class, message = all_check_login(params['login'])
+    password_input_class, password_div_class, password_message = all_check_password(params['password'])
+
+    if message and password_message is not None:
+        if message == 'Логин удовлетворяет всем требованиям' and password_message == 'Пароль удовлетворяет всем требованиям':
+            # Запрос для отправления данных в БД
+            # с помощью конструкции %()s подставляем из словаря
+            query = 'INSERT INTO users (login, password_hash, last_name, first_name, middle_name, role_id) VALUES (%(login)s, SHA2(%(password)s, 256), %(last_name)s, %(first_name)s, %(middle_name)s, %(role_id)s);'
+            # Для перехвата ошибок (если ввели неуникальный логин) оборачиваем выполнение запроса в try
+            try:
+                # C помощью with можно не закрывать cursor как делали это в load_user, это будет сделано автоматически
+                with db.connection().cursor(named_tuple=True) as cursor:
+                    # Подставляем в верхний запрос при помощи метода execute(принимает аргумен-запрос, передаем кортеж(tuple) со значениями)
+                    cursor.execute(query, params)
+                    # .commit() - для окончательного добавления записи в БД
+                    db.connection().commit()
+                    flash('Обработка данных прошла успешно!', 'success')
+            # mysql.connector.errors.DatabaseError - базовый класс для всех ошибок с БД (нарушение целостности, соединения и тд.)
+            except mysql.connector.errors.DatabaseError:
+                # Если случались ошибка, то идет откатить ти изменения, что были внесены до этого
+                db.connection().rollback()  # для этого используется метод rollback()
+                flash('При сохранении данных возникла ошибка!', 'danger')
+                # передается список ролей для рендеринга
+                return render_template('users_new.html', user=params, roles_list=load_roles())
+                # user=params, чтобы данный вставлялись в форму в случае ошибки
+        else:
+            return render_template('users_new.html', user=params, roles_list=load_roles(), input_class=input_class, div_class=div_class, message=message, password_input_class=password_input_class, password_div_class=password_div_class, password_message=password_message)
+    # --------------------------------------------------------------------------------------------
+    
+    # # Запрос для отправления данных в БД
+    # # с помощью конструкции %()s подставляем из словаря
+    # query = 'INSERT INTO users (login, password_hash, last_name, first_name, middle_name, role_id) VALUES (%(login)s, SHA2(%(password)s, 256), %(last_name)s, %(first_name)s, %(middle_name)s, %(role_id)s);'
+    # # Для перехвата ошибок (если ввели неуникальный логин) оборачиваем выполнение запроса в try
+    # try:
+    #     # C помощью with можно не закрывать cursor как делали это в load_user, это будет сделано автоматически
+    #     with db.connection().cursor(named_tuple=True) as cursor:
+    #         # Подставляем в верхний запрос при помощи метода execute(принимает аргумен-запрос, передаем кортеж(tuple) со значениями)
+    #         cursor.execute(query, params)
+    #         # .commit() - для окончательного добавления записи в БД
+    #         db.connection().commit()
+    #         flash('Обработка данных прошла успешно!', 'success')
+    # # mysql.connector.errors.DatabaseError - базовый класс для всех ошибок с БД (нарушение целостности, соединения и тд.)
+    # except mysql.connector.errors.DatabaseError:
+    #     # Если случались ошибка, то идет откатить ти изменения, что были внесены до этого
+    #     db.connection().rollback()  # для этого используется метод rollback()
+    #     flash('При сохранении данных возникла ошибка. Данный логин уже используется.', 'danger')
+    #     # передается список ролей для рендеринга
+    #     return render_template('users_new.html', user=params, roles_list=load_roles())
+    #     # user=params, чтобы данный вставлялись в форму в случае ошибки
     return redirect(url_for('users'))
 
 # Страничка для изменения пользователя
-
-
 @app.route('/users/<int:user_id>/update', methods=['POST'])
 @login_required  # для того, чтобы только авторизованный пользователь мог отправить данные по этому руту
 def update_user(user_id):
@@ -205,8 +284,6 @@ def update_user(user_id):
     return redirect(url_for('users'))
 
 # Страничка редактирования с формой
-
-
 @app.route('/users/<int:user_id>/edit')
 @login_required  # для того, чтобы только авторизованный пользователь мог отправить данные по этому руту
 def edit_user(user_id):
@@ -225,8 +302,6 @@ def edit_user(user_id):
     # user передает данные пользователя, которые затем мы подставим в html
 
 # Страничка для просмотра пользователя
-
-
 @app.route('/user/<int:user_id>')
 def show_user(user_id):
     # SQL-запрос к базе данных, вывод всех пользователей
@@ -244,8 +319,6 @@ def show_user(user_id):
     # user передает данные пользователя, которые затем мы подставим в html
 
 # Страничка удаления пользователей
-
-
 @app.route('/users/<int:user_id>/delete', methods=['POST'])
 @login_required  # для того, чтобы только авторизованный пользователь мог отправить данные по этому руту
 def delete_user(user_id):
@@ -276,8 +349,6 @@ def logout():
     return redirect(url_for('index'))
 
 # Функция загрузки пользователя по идентификатору из БД
-
-
 @login_manager.user_loader
 def load_user(user_id):
     # SQL-запрос к базе данных / %s работает как .format() - позволяет подставлять значение
@@ -302,39 +373,7 @@ def load_user(user_id):
 
 # ------------------------------------------------------------------------------------------------
 
-# Проверка логина на длину
-
-
-def check_login_len(login):
-    if len(login) < 5:
-        message = 'Логин должен иметь длину не менее 5 символов'
-    else:
-        message = None
-    return message
-
-# Проверка, состоит ли пароль только из латинских букв и цифр
-
-
-def check_login_latin(login):
-    latin_symb = 'abcdefghijklmnopqrstuvwxyz'
-    # Для простоты проверки удаляем из пароля все цифры и пробелы
-    login_without_numbers = ''
-    for symb in login:
-        if (symb.isdigit() == False) and (symb != ' '):
-            login_without_numbers = login_without_numbers + \
-                symb.lower()  # приводим к одному регистру для сравнения
-    # Сам алгоритм проверки
-    for symb in login_without_numbers:
-        if not (symb in latin_symb):
-            message = 'Логин должен состоять только из латинских букв и цифр'
-            break
-        else:
-            message = None
-    return message
-
 # Проверка пароля на длинну
-
-
 def check_password_len(password):
     if len(password) < 8 or len(password) > 128:
         message = 'Пароль должен иметь длинну не менее 8 символов и не более 128 символов'
@@ -343,8 +382,6 @@ def check_password_len(password):
     return message
 
 # Проверка, что есть минимум одна заглавная и одна строчная буква
-
-
 def check_password_upper_lower(password):
     status_upper = False
     status_lower = False
@@ -361,8 +398,6 @@ def check_password_upper_lower(password):
     return message
 
 # Проверка, что ввели латинские или кириллические буквы И спецсимволы ~!?@#$%^&*_-+()[]{}></\|"'.,:;
-
-
 def check_password_cyrillic_latin_special_symb(password):
     cyrillic_symb = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'
     latin_symb = 'abcdefghijklmnopqrstuvwxyz'
@@ -385,8 +420,6 @@ def check_password_cyrillic_latin_special_symb(password):
     return message
 
 # Проверка, есть ли в пароле минимальное колличество арабских цифр
-
-
 def check_password_min_num_of_digit(password):
     status_digit = False
     for symb in password:
@@ -399,8 +432,6 @@ def check_password_min_num_of_digit(password):
     return message
 
 # Проверка на наличие пробелов
-
-
 def check_password_space(password):
     status_space = False
     for symb in password:
@@ -413,8 +444,6 @@ def check_password_space(password):
     return message
 
 # Все проверки пароля и вывод сообщения под полем ввода
-
-
 def all_check_password(password):
     input_class, div_class = '', ''
     bootstrap_class_green = {
@@ -456,8 +485,6 @@ def all_check_password(password):
     return input_class, div_class, message
 
 # Проверка сходства паролей и вывод сообщения под полем ввода
-
-
 def password_comparison(new_password, confirm_password, message):
     bootstrap_class_green = {
         'input_class': 'is-valid', 'div_class': 'valid-feedback'}
@@ -478,8 +505,6 @@ def password_comparison(new_password, confirm_password, message):
     return confirm_input_class, confirm_div_class, confirm_message
 
 # Страничка с изменением парроля
-
-
 @app.route('/id<int:user_id>/changepassword', methods=['GET', 'POST'])
 @login_required  # для того, чтобы только авторизованный пользователь мог отправить данные по этому руту
 def change_password(user_id):
@@ -519,16 +544,17 @@ def change_password(user_id):
                         cursor.execute(query, (new_password, user_id))
                         # .commit() - для окончательного добавления записи в БД
                         db.connection().commit()
-                        flash('Обработка данных прошла успешно!', 'success')
+                        flash('Пароль успешно изменен.', 'success')
                 except mysql.connector.errors.DatabaseError:
                     # Если случались ошибка, то идет откатить эти изменения, что были внесены до этого
                     db.connection().rollback()
                     flash('При смене пароля произошел сбой!', 'danger')
-
-                # flash('Пароль успешно изменен.', 'success')
                 return redirect(url_for('users'))
             else:
                 flash('Текущий пароль записан неверно!', 'danger')
+
+    return render_template('change_password.html', user_id=user_id, message=message, input_class=input_class, div_class=div_class, confirm_message=confirm_message, confirm_input_class=confirm_input_class, confirm_div_class=confirm_div_class, old_password=old_password)
+
 
         # # C помощью with можно не закрывать cursor как делали это в load_user, это будет сделано автоматически
         # with db.connection().cursor(named_tuple=True) as cursor:
@@ -538,8 +564,6 @@ def change_password(user_id):
         #     print(cursor.statement)
         #     # Метод fetchone() возвращает либо None, если результат пустой, либо кортеж с найденной записью, если что-то нашлось
         #     user = cursor.fetchone()
-
-    return render_template('change_password.html', user_id=user_id, message=message, input_class=input_class, div_class=div_class, confirm_message=confirm_message, confirm_input_class=confirm_input_class, confirm_div_class=confirm_div_class, old_password=old_password)
 
     # # SQL-запрос на обновление пароля пользователя
     # query = 'UPDATE `users` SET `password_hash`= SHA2(%s, 256) WHERE users.id = %s'
@@ -556,7 +580,6 @@ def change_password(user_id):
     #     # Если случались ошибка, то идет откатить эти изменения, что были внесены до этого
     #     db.connection().rollback()
     #     flash('При смене пароля произошел сбой!', 'danger')
-
 
 @app.route('/test')
 def test():
