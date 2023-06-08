@@ -26,10 +26,46 @@ from auth import init_login_manager
 # Импортирует декоратор
 from auth import permission_check
 
+from visits import bp as visits_bp
+
 # Рнгистрируем блюпринт
 app.register_blueprint(auth_bp)
 # Инициализируем login_manager, чтобы flask_login корректно работал
 init_login_manager(app)
+
+app.register_blueprint(visits_bp)
+
+# # Функция записывает логи посещений сайта в базу данных для каждого выполненного запроса
+# Если запрос является статичным, то функция завершает работу без выполнения дополнительных действий
+# Декоратор before_request позволяет связать эту функцию с обработкой каждого запроса перед его выполнением
+@app.before_request
+def loger():
+    # Статичные запросы не попадают в таблицу с логами, благодаря нижней конструкции
+    # Проверяем, является ли запрашиваемый ресурс статичным файлом
+    if request.endpoint == 'static':
+        # Если да, то завершаем работу функции без выполнения дополнительных действий
+        return
+
+    # Получаем путь запрашиваемого ресурса
+    path = request.path
+    # Получаем идентификатор пользователя, который выполняет запрос
+    user_id = getattr(current_user, 'id', None)
+    # Формируем SQL-запрос для записи лога посещения
+    query = 'INSERT INTO visit_logs(user_id, path) VALUES (%s, %s);'
+    try:
+        # Выполняем запрос к базе данных через соединение из пула
+        # Сursor с параметром named_tuple=True позволяет использовать курсор в качестве именованного кортежа
+        with db.connection().cursor(named_tuple=True) as cursor:
+            # Выполняем запрос на добавление записи в логи
+            cursor.execute(query, (user_id, path))
+            # Фиксируем изменения в базе данных
+            print(cursor.statement)
+            # print(cursor.statement) - ввыводит какой запрос был выполнен в БД
+            db.connection().commit()
+    # Если произошла ошибка взаимодействия с базой данных
+    except mysql.connector.errors.DatabaseError:
+        # Откатываем изменения в базе данных до начала выполнения текущей транзакции
+        db.connection().rollback()
 
 # Главная страничка
 @app.route('/')
