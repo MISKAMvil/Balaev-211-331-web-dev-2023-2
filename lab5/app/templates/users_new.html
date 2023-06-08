@@ -2,7 +2,8 @@
 {% from 'form.html' import user_form %}
 
 {% block content %}
-<h2 class="my-3">Добавление нового пользователя</h2>
-{{ user_form(user, url_for('create_user'), roles_list, current_user) }}
+<h4 class="mb-3">Добавление нового пользователя</h4>
+{{ user_form(user, url_for('create_user'), roles_list, current_user, input_class, div_class, message,
+password_input_class, password_div_class, password_message) }}
 
 {% endblock %}

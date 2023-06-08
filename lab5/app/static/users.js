@@ -1,4 +1,3 @@
-
 let deleteUserModal = document.querySelector('#deleteUser')
 
 deleteUserModal.addEventListener('show.bs.modal', function(event){
