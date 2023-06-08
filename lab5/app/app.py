@@ -19,6 +19,7 @@ app.config.from_pyfile('config.py')
 
 # Создаем объект класса MySQL
 db = MySQL(app)
+
 # Импорт происходит после загрузки БД, чтобы круг не замкнулся
 from auth import bp as auth_bp
 # Импортируем init_login_manager, чтобы создавался login_manager и передавалось в него приложение
