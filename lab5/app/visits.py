@@ -3,6 +3,7 @@ import io
 from flask import render_template, Blueprint, request, send_file
 from app import db
 from math import ceil
+# from flask_login import login_required
 
 # Определение количества записей на страницу
 PER_PAGE = 10
@@ -10,32 +11,82 @@ PER_PAGE = 10
 # Создание объекта для маршрутизации и установки префикса для URL
 bp = Blueprint('visits', __name__, url_prefix='/visits')
 
-# Функция logging() используется для записи сообщений в журнал.
-@bp.route('/')
-def logging():
-    # Получение номера текущей страницы из GET-параметра запроса, либо установка значения по умолчанию
-    page = request.args.get('page', 1, type = int)
-    # Формирование SQL-запроса на выборку логов с указанием нужных параметров и сортировкой по дате создания в обратном порядке
-    query = ('SELECT visit_logs.*, users.login '
-            'FROM users RIGHT JOIN visit_logs ON visit_logs.user_id = users.id '
-            'ORDER BY created_at DESC LIMIT %s OFFSET %s')
-    # Выполнение SQL-запроса и получение данных на основе запроса в объект logs
-    with db.connection().cursor(named_tuple=True) as cursor:
-        cursor.execute(query, (PER_PAGE, (page-1)*PER_PAGE))
-        logs = cursor.fetchall()
+# # Импортирует декоратор
+# from auth import permission_check
 
-    # Формирование SQL-запроса для получения общего количества записей в таблице
+# @bp.route('/')
+# @login_required  # для того, чтобы только авторизованный пользователь мог отправить данные по этому руту
+# @permission_check('show_statistics')
+# def logging():
+#     page = request.args.get('page', 1, type = int)
+#     query = ('SELECT visit_logs.*, users.login '
+#             'FROM users RIGHT JOIN visit_logs ON visit_logs.user_id = users.id '
+#             'ORDER BY created_at DESC LIMIT %s OFFSET %s')
+#     with db.connection().cursor(named_tuple=True) as cursor:
+#         cursor.execute(query, (PER_PAGE, (page-1)*PER_PAGE))
+#         records = cursor.fetchall()
+
+#     query = 'SELECT COUNT(*) AS count FROM visit_logs'
+#     with db.connection().cursor(named_tuple=True) as cursor:
+#         cursor.execute(query)
+#         count = cursor.fetchone().count
+    
+#     last_page = ceil(count/PER_PAGE)
+
+#     if request.args.get('download_csv'):
+#         query = ('SELECT visit_logs.*, users.login '
+#                  'FROM users RIGHT JOIN visit_logs ON visit_logs.user_id = users.id '
+#                  'ORDER BY created_at DESC')
+#         with db.connection().cursor(named_tuple=True) as cursor:
+#             cursor.execute(query)
+#             records = cursor.fetchall()
+#         f = generate_report_file(records, ['path', 'login', 'created_at'])
+#         return send_file(f, mimetype='text/csv', as_attachment=True, download_name='logs.csv')
+
+#     return render_template('visits/logs.html', logs = records, last_page = last_page, current_page = page, PER_PAGE=PER_PAGE)
+
+from flask_login import current_user
+@bp.route('/')
+# @login_required
+# @permission_check('show_statistics')
+def logging():
+    page = request.args.get('page', 1, type = int)
+    user_id = current_user.id
+    if not user_id == 1:
+        query = ('SELECT visit_logs.*, users.login '
+                 'FROM users RIGHT JOIN visit_logs ON visit_logs.user_id = users.id '
+                 'WHERE users.id = %s '
+                 'ORDER BY created_at DESC LIMIT %s OFFSET %s')
+        with db.connection().cursor(named_tuple=True) as cursor:
+            cursor.execute(query, (user_id, PER_PAGE, (page-1)*PER_PAGE))
+            records = cursor.fetchall()
+    else:
+        query = ('SELECT visit_logs.*, users.login '
+                 'FROM users RIGHT JOIN visit_logs ON visit_logs.user_id = users.id '
+                 'ORDER BY created_at DESC LIMIT %s OFFSET %s')
+        with db.connection().cursor(named_tuple=True) as cursor:
+            cursor.execute(query, (PER_PAGE, (page-1)*PER_PAGE))
+            records = cursor.fetchall()
+
     query = 'SELECT COUNT(*) AS count FROM visit_logs'
-    # Выполнение SQL-запроса и получение данных на основе запроса в объект count
     with db.connection().cursor(named_tuple=True) as cursor:
         cursor.execute(query)
         count = cursor.fetchone().count
     
-    # Вычисление количества страниц на основе общего количества записей и количества записей на странице
     last_page = ceil(count/PER_PAGE)
 
-    # Отображение страницы с логами посещений и передача на нее объектов с данными логов, количеством страниц и номером текущей страницы
-    return render_template('visits/logs.html', logs = logs, last_page = last_page, current_page = page)
+    if request.args.get('download_csv'):
+        query = ('SELECT visit_logs.*, users.login '
+                 'FROM users RIGHT JOIN visit_logs ON visit_logs.user_id = users.id '
+                 'ORDER BY created_at DESC')
+        with db.connection().cursor(named_tuple=True) as cursor:
+            cursor.execute(query)
+            records = cursor.fetchall()
+        f = generate_report_file(records, ['path', 'login', 'created_at'])
+        return send_file(f, mimetype='text/csv', as_attachment=True, download_name='logs.csv')
+
+    return render_template('visits/logs.html', logs = records, last_page = last_page, current_page = page, PER_PAGE=PER_PAGE)
+
 
 # Функция generate_report_file() предназначена для преобразования списка записей `records` в CSV-файл, содержащий данные об этих записях.
 # Функция принимает два параметра:
@@ -57,45 +108,44 @@ def generate_report_file(records, fields):
     # Возвращаем объект буфера с содержимым CSV файла
     return f
 
-# Описание маршрута для Flask приложения
 @bp.route('/stat/pages')
-# Функция pages_stat() является обработчиком запросов к маршруту /stat/pages
 def pages_stat():
-    '''Сначала формируется SQL-запрос `query` для получения количества визитов по каждой странице из таблицы `visit_logs`, который затем выполняется и результаты запроса сохраняются в переменной `records`.'''
-    # Создание SQL-запроса для получения количества визитов по каждой странице
-    query = 'SELECT path, COUNT(*) as count FROM visit_logs GROUP BY path ORDER BY count DESC;'
-    # Получение соединения с базой данных и создание курсора для выполнения запроса
+    # Получение номера текущей страницы из GET-параметра запроса, либо установка значения по умолчанию
+    page = request.args.get('page', 1, type=int)
+    # Формирование SQL-запроса на выборку страниц и их частоты посещений, сортировка по убыванию частоты посещений
+    query = 'SELECT path, COUNT(*) as count FROM visit_logs GROUP BY path ORDER BY count DESC LIMIT %s OFFSET %s'
     with db.connection().cursor(named_tuple=True) as cursor:
-        # Выполнение SQL-запроса
-        cursor.execute(query)
-        # Получение результатов выполнения запроса
+        cursor.execute(query, (PER_PAGE, (page-1)*PER_PAGE))
         records = cursor.fetchall()
 
-    '''Затем проверяется наличие параметра 'download_csv' в запросе. Если параметр присутствует, то вызывается функция `generate_report_file()` для создания CSV-файла по данным из `records`, а затем этот файл отправляется пользователю в качестве вложения.'''
-    # Проверка наличия параметра 'download_csv' в запросе
-    if request.args.get('download_csv'):
-        # Создание CSV-файла с результатами выполнения запроса
-        f = generate_report_file(records, ['path', 'count'])
-        # Отправка файла пользователю как вложения
-        return send_file(f, mimetype='text/csv', as_attachment=True, download_name='pages_stat.csv')
+    # Формирование SQL-запроса для получения общего количества записей в таблице
+    query = 'SELECT COUNT(*) AS count FROM (SELECT path FROM visit_logs GROUP BY path) AS paths'
+    with db.connection().cursor(named_tuple=True) as cursor:
+        cursor.execute(query)
+        count = cursor.fetchone().count
 
-    '''Если параметр отсутствует, то происходит отправка шаблона страницы 'visits/pages_stat.html', в котором отображается статистика посещений всех страниц, полученная из `records`.'''
-    # Отправка шаблона страницы со статистикой посещений
-    return render_template('visits/pages_stat.html', records=records)
+    # Вычисление количества страниц на основе общего количества записей и количества записей на странице
+    last_page = ceil(count/PER_PAGE)
+
+    if request.args.get('download_csv'):
+        query = 'SELECT path, COUNT(*) as count FROM visit_logs GROUP BY path ORDER BY count DESC'
+        with db.connection().cursor(named_tuple=True) as cursor:
+            cursor.execute(query)
+            records = cursor.fetchall()
+        f = generate_report_file(records, ['path', 'count'])
+        return send_file(f, mimetype='text/csv', as_attachment=True, download_name='pages_stat.csv')
+    # Отображение шаблона pages_stat.html и передача на него объекта с данными страниц, удовлетворяющих запросу,
+    # а также объектов с количеством страниц и номером текущей страницы
+    return render_template('visits/pages_stat.html', records=records, last_page=last_page, current_page=page, PER_PAGE=PER_PAGE)
 
 # -------------------------------------------------------------------------
 
-# Описание маршрута для Flask приложения
 @bp.route('/stat/users')
-# Функция users_stat() является обработчиком запросов к маршруту /stat/users
 def users_stat():
-    # Выбираем имя пользователя (если он есть) и количество посещений
-    #  "CASE WHEN", который проверяет, равно ли поле user_id NULL. Если поле user_id равно NULL,
-    #  тогда выводится строка "Неаутентифицированный пользователь", иначе выводится значение поля
-    #  login из таблицы users, соответствующее значению поля user_id
+    page = request.args.get('page', 1, type=int)
     query = '''
         SELECT 
-            # Функция `CASE WHEN` возвращает строку "Неаутентифицированный пользователь", если поле user_id
+            # Функция CASE WHEN возвращает строку "Неаутентифицированный пользователь", если поле user_id
             # в таблице visit_logs равно NULL, иначе выводится значение поля login из таблицы users,
             # соответствующее значению поля user_id.
             CASE WHEN user_id IS NULL THEN 'Анонимный пользователь' ELSE users.login END AS user_name, 
@@ -109,16 +159,25 @@ def users_stat():
         # Группируем записи по имени пользователя.
         GROUP BY 
             user_name
+        ORDER BY count DESC LIMIT %s OFFSET %s
         '''
-
-    # Выполняем запрос к БД и получаем записи, удовлетворяющие запросу
+    with db.connection().cursor(named_tuple=True) as cursor:
+        cursor.execute(query, (PER_PAGE, (page-1)*PER_PAGE))
+        records = cursor.fetchall()
+    query = 'SELECT COUNT(DISTINCT user_id) as count FROM visit_logs;'
     with db.connection().cursor(named_tuple=True) as cursor:
         cursor.execute(query)
-        records = cursor.fetchall()
+        count = cursor.fetchone().count
+    last_page = ceil(count/PER_PAGE)
 
-    # Если параметр download_csv есть в запросе, то создаем csv-файл  и сразу отправляем его
     if request.args.get('download_csv'):
-        f = generate_report_file(records, ['user_name', 'count'])
-        return send_file(f, mimetype='text/csv', as_attachment=True, download_name='users_stat.csv')
-    # Иначе возвращаем шаблон users_stat.html с записями, удовлетворяющими запросу
-    return render_template('visits/users_stat.html', records=records)
+        query = ('SELECT users.login, COUNT(visit_logs.id) AS count '
+             'FROM users LEFT JOIN visit_logs ON visit_logs.user_id = users.id '
+             'GROUP BY users.login '
+             'ORDER BY COUNT(visit_logs.id) DESC')
+        with db.connection().cursor(named_tuple=True) as cursor:
+            cursor.execute(query)
+            records = cursor.fetchall()
+        f = generate_report_file(records, ['login', 'count'])
+        return send_file(f, mimetype='text/csv', as_attachment=True, download_name='logs.csv')
+    return render_template('visits/users_stat.html', records=records, last_page=last_page, current_page=page, PER_PAGE=PER_PAGE)

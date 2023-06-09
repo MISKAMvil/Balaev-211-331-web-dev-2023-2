@@ -77,10 +77,12 @@
                                 href="{{ url_for('users') }}">Пользователи</a>
                         </li>
 
+                        {% if current_user.is_authenticated and current_user.can('show', user) %}
                         <li class="nav-item ">
                             <a class="nav-link {% if request.endpoint == 'visits.logging' %} active {% endif %}"
                                 href="{{ url_for('visits.logging') }}">Статистика</a>
                         </li>
+                        {% endif %}
 
                         <!-- <li class="nav-item">
                             {# if current_user.is_authenticated #}

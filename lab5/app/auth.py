@@ -48,14 +48,6 @@ class User(UserMixin):
             return method()
         return False
 
-# def load_user(user_id):
-#     query = 'SELECT * FROM users WHERE users.id = %s;'
-#     cursor = db.connection().cursor(named_tuple=True)
-#     cursor.execute(query, (user_id,))
-#     user = cursor.fetchone()
-#     cursor.close()
-#     return user
-
 # Декоратор для проверки прав доступа к страничке, для исбежания повторения кода
 def permission_check(action):
     def decor(function):

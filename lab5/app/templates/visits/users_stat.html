@@ -1,5 +1,5 @@
 {% extends 'visits/base.html' %}
-
+{% from 'pagination.html' import pagination %}
 {% block tab_content %}
 <table class="table">
 	<thead>
@@ -19,7 +19,7 @@
 		{% for record in records %}
 		<tr>
 			<td>
-				{{loop.index}}
+				{{ loop.index + ((current_page - 1) * PER_PAGE) }}
 			</td>
 			<td>
 				{{record.user_name}}
@@ -31,5 +31,6 @@
 		{% endfor %}
 	</tbody>
 </table>
+{{ pagination(current_page, last_page, request.endpoint) }}
 <a class="btn btn-primary" href="{{ url_for('visits.users_stat', download_csv=True) }}">Экспорт в CSV</a>
 {% endblock %}

@@ -23,6 +23,18 @@ class UsersPolicy:
         # Иначе срабатывает функция на проверку админки
         return current_user.is_admin()
 
+    # Разрешение просматривать статистику администратору
+    def show_statistics(self):
+        return current_user.is_admin()
+
+    # Возможность иметь кнопку в меню виситс
+    def show_user_visits(self):
+        return current_user.is_admin()
+    
+    # def show_view_button(self):
+    #     if current_user.is_admin():
+    #         pass
+        
 	# Назначать роль может только администратор
     def change_role(self):
         return current_user.is_admin()
