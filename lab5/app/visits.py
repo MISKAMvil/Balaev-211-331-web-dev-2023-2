@@ -82,3 +82,43 @@ def pages_stat():
     '''Если параметр отсутствует, то происходит отправка шаблона страницы 'visits/pages_stat.html', в котором отображается статистика посещений всех страниц, полученная из `records`.'''
     # Отправка шаблона страницы со статистикой посещений
     return render_template('visits/pages_stat.html', records=records)
+
+# -------------------------------------------------------------------------
+
+# Описание маршрута для Flask приложения
+@bp.route('/stat/users')
+# Функция users_stat() является обработчиком запросов к маршруту /stat/users
+def users_stat():
+    # Выбираем имя пользователя (если он есть) и количество посещений
+    #  "CASE WHEN", который проверяет, равно ли поле user_id NULL. Если поле user_id равно NULL,
+    #  тогда выводится строка "Неаутентифицированный пользователь", иначе выводится значение поля
+    #  login из таблицы users, соответствующее значению поля user_id
+    query = '''
+        SELECT 
+            # Функция `CASE WHEN` возвращает строку "Неаутентифицированный пользователь", если поле user_id
+            # в таблице visit_logs равно NULL, иначе выводится значение поля login из таблицы users,
+            # соответствующее значению поля user_id.
+            CASE WHEN user_id IS NULL THEN 'Анонимный пользователь' ELSE users.login END AS user_name, 
+            COUNT(*) AS count
+        FROM 
+            visit_logs 
+            # Соединяем таблицу visit_logs с таблицей users по полю user_id. 
+            # LEFT JOIN позволяет включать в итоговый результат все записи из visit_logs,
+            # даже если в таблице users нет соответствующей записи по user_id.
+            LEFT JOIN users ON visit_logs.user_id = users.id
+        # Группируем записи по имени пользователя.
+        GROUP BY 
+            user_name
+        '''
+
+    # Выполняем запрос к БД и получаем записи, удовлетворяющие запросу
+    with db.connection().cursor(named_tuple=True) as cursor:
+        cursor.execute(query)
+        records = cursor.fetchall()
+
+    # Если параметр download_csv есть в запросе, то создаем csv-файл  и сразу отправляем его
+    if request.args.get('download_csv'):
+        f = generate_report_file(records, ['user_name', 'count'])
+        return send_file(f, mimetype='text/csv', as_attachment=True, download_name='users_stat.csv')
+    # Иначе возвращаем шаблон users_stat.html с записями, удовлетворяющими запросу
+    return render_template('visits/users_stat.html', records=records)

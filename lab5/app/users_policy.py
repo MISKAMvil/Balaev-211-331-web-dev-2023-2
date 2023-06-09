@@ -26,3 +26,7 @@ class UsersPolicy:
 	# Назначать роль может только администратор
     def change_role(self):
         return current_user.is_admin()
+    
+    # # Изменять пароль может любой авторизированный пользователь
+    # def change_password(self):
+    #     return True

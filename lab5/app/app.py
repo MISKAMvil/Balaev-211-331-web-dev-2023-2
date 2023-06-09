@@ -29,11 +29,11 @@ from auth import permission_check
 
 from visits import bp as visits_bp
 
-# Рнгистрируем блюпринт
+# Регистрируем блюпринт авторизации
 app.register_blueprint(auth_bp)
 # Инициализируем login_manager, чтобы flask_login корректно работал
 init_login_manager(app)
-
+# Регистрируем блюпринт посещений
 app.register_blueprint(visits_bp)
 
 # # Функция записывает логи посещений сайта в базу данных для каждого выполненного запроса

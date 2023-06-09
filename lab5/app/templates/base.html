@@ -79,7 +79,7 @@
 
                         <li class="nav-item ">
                             <a class="nav-link {% if request.endpoint == 'visits.logging' %} active {% endif %}"
-                                href="{{ url_for('visits.logging') }}">Журнал посещений</a>
+                                href="{{ url_for('visits.logging') }}">Статистика</a>
                         </li>
 
                         <!-- <li class="nav-item">
@@ -106,7 +106,7 @@
     {% endfor %}
     {% endwith %}
 
-    <main class="flex-shrink-0">
+    <main class="flex-shrink-0 mb-3">
         <div class="container">
             {% block content %}
             <h1>Содержимое по умолчанию</h1>
