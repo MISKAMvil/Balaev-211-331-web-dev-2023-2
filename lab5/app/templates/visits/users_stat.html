@@ -22,7 +22,10 @@
 				{{ loop.index + ((current_page - 1) * PER_PAGE) }}
 			</td>
 			<td>
-				{{record.user_name}}
+				<!-- {#record.user_name#} -->
+				{{record.first_name or 'Анонимный пользователь'}}
+				{{record.last_name or ''}}
+				{{record.middle_name or ''}}
 			</td>
 			<td>
 				{{record.count}}

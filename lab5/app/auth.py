@@ -15,7 +15,7 @@ def init_login_manager(app):
 	# Создан экземпляр класса
 	login_manager.init_app(app)
 	# Даем приложению знать о существования логин менеджера
-	login_manager.login_view = 'login'
+	login_manager.login_view = 'auth.login'
 	login_manager.login_message = 'Для доступа к этой странице нужно авторизироваться.'
 	login_manager.login_message_category = 'warning'
 

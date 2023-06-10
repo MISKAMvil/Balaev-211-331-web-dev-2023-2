@@ -31,10 +31,9 @@ class UsersPolicy:
     def show_user_visits(self):
         return current_user.is_admin()
     
-    # def show_view_button(self):
-    #     if current_user.is_admin():
-    #         pass
-        
+    def show_all_view_button(self):
+        return current_user.is_admin()
+    
 	# Назначать роль может только администратор
     def change_role(self):
         return current_user.is_admin()

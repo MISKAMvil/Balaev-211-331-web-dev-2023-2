@@ -1,9 +1,9 @@
 # Импорт необходимых модулей и объектов
 import io
 from flask import render_template, Blueprint, request, send_file
-from app import db
+from app import db, app
 from math import ceil
-# from flask_login import login_required
+from flask_login import current_user, login_required
 
 # Определение количества записей на страницу
 PER_PAGE = 10
@@ -11,67 +11,39 @@ PER_PAGE = 10
 # Создание объекта для маршрутизации и установки префикса для URL
 bp = Blueprint('visits', __name__, url_prefix='/visits')
 
-# # Импортирует декоратор
-# from auth import permission_check
+# Импортирует декоратор
+from auth import permission_check, init_login_manager
 
-# @bp.route('/')
-# @login_required  # для того, чтобы только авторизованный пользователь мог отправить данные по этому руту
-# @permission_check('show_statistics')
-# def logging():
-#     page = request.args.get('page', 1, type = int)
-#     query = ('SELECT visit_logs.*, users.login '
-#             'FROM users RIGHT JOIN visit_logs ON visit_logs.user_id = users.id '
-#             'ORDER BY created_at DESC LIMIT %s OFFSET %s')
-#     with db.connection().cursor(named_tuple=True) as cursor:
-#         cursor.execute(query, (PER_PAGE, (page-1)*PER_PAGE))
-#         records = cursor.fetchall()
+init_login_manager(app)
 
-#     query = 'SELECT COUNT(*) AS count FROM visit_logs'
-#     with db.connection().cursor(named_tuple=True) as cursor:
-#         cursor.execute(query)
-#         count = cursor.fetchone().count
-    
-#     last_page = ceil(count/PER_PAGE)
-
-#     if request.args.get('download_csv'):
-#         query = ('SELECT visit_logs.*, users.login '
-#                  'FROM users RIGHT JOIN visit_logs ON visit_logs.user_id = users.id '
-#                  'ORDER BY created_at DESC')
-#         with db.connection().cursor(named_tuple=True) as cursor:
-#             cursor.execute(query)
-#             records = cursor.fetchall()
-#         f = generate_report_file(records, ['path', 'login', 'created_at'])
-#         return send_file(f, mimetype='text/csv', as_attachment=True, download_name='logs.csv')
-
-#     return render_template('visits/logs.html', logs = records, last_page = last_page, current_page = page, PER_PAGE=PER_PAGE)
-
-from flask_login import current_user
 @bp.route('/')
-# @login_required
-# @permission_check('show_statistics')
+@login_required
 def logging():
     page = request.args.get('page', 1, type = int)
-    user_id = current_user.id
-    if not user_id == 1:
+    if current_user.can('show_logs'):
         query = ('SELECT visit_logs.*, users.login '
-                 'FROM users RIGHT JOIN visit_logs ON visit_logs.user_id = users.id '
-                 'WHERE users.id = %s '
-                 'ORDER BY created_at DESC LIMIT %s OFFSET %s')
-        with db.connection().cursor(named_tuple=True) as cursor:
-            cursor.execute(query, (user_id, PER_PAGE, (page-1)*PER_PAGE))
-            records = cursor.fetchall()
-    else:
-        query = ('SELECT visit_logs.*, users.login '
-                 'FROM users RIGHT JOIN visit_logs ON visit_logs.user_id = users.id '
-                 'ORDER BY created_at DESC LIMIT %s OFFSET %s')
+                'FROM users RIGHT JOIN visit_logs ON visit_logs.user_id = users.id '
+                'ORDER BY created_at DESC LIMIT %s OFFSET %s')
         with db.connection().cursor(named_tuple=True) as cursor:
             cursor.execute(query, (PER_PAGE, (page-1)*PER_PAGE))
-            records = cursor.fetchall()
+            logs = cursor.fetchall()
 
-    query = 'SELECT COUNT(*) AS count FROM visit_logs'
-    with db.connection().cursor(named_tuple=True) as cursor:
-        cursor.execute(query)
-        count = cursor.fetchone().count
+        query = 'SELECT COUNT(*) AS count FROM visit_logs'
+        with db.connection().cursor(named_tuple=True) as cursor:
+            cursor.execute(query)
+            count = cursor.fetchone().count
+    else:
+        query = ('SELECT visit_logs.*, users.login '
+                'FROM visit_logs RIGHT JOIN users ON visit_logs.user_id = users.id WHERE users.id=%s '
+                'ORDER BY created_at DESC LIMIT %s OFFSET %s')
+        with db.connection().cursor(named_tuple=True) as cursor:
+            cursor.execute(query, (current_user.id, PER_PAGE, (page-1)*PER_PAGE))
+            logs = cursor.fetchall()
+
+        query = 'SELECT COUNT(*) AS count FROM visit_logs WHERE visit_logs.user_id = %s'
+        with db.connection().cursor(named_tuple=True) as cursor:
+            cursor.execute(query, (current_user.id, ))
+            count = cursor.fetchone().count
     
     last_page = ceil(count/PER_PAGE)
 
@@ -85,7 +57,7 @@ def logging():
         f = generate_report_file(records, ['path', 'login', 'created_at'])
         return send_file(f, mimetype='text/csv', as_attachment=True, download_name='logs.csv')
 
-    return render_template('visits/logs.html', logs = records, last_page = last_page, current_page = page, PER_PAGE=PER_PAGE)
+    return render_template('visits/logs.html', logs = logs, last_page = last_page, current_page = page, PER_PAGE=PER_PAGE)
 
 
 # Функция generate_report_file() предназначена для преобразования списка записей `records` в CSV-файл, содержащий данные об этих записях.
@@ -109,6 +81,8 @@ def generate_report_file(records, fields):
     return f
 
 @bp.route('/stat/pages')
+@login_required
+@permission_check('show_statistics')
 def pages_stat():
     # Получение номера текущей страницы из GET-параметра запроса, либо установка значения по умолчанию
     page = request.args.get('page', 1, type=int)
@@ -141,29 +115,18 @@ def pages_stat():
 # -------------------------------------------------------------------------
 
 @bp.route('/stat/users')
+@login_required
+@permission_check('show_statistics')
 def users_stat():
     page = request.args.get('page', 1, type=int)
-    query = '''
-        SELECT 
-            # Функция CASE WHEN возвращает строку "Неаутентифицированный пользователь", если поле user_id
-            # в таблице visit_logs равно NULL, иначе выводится значение поля login из таблицы users,
-            # соответствующее значению поля user_id.
-            CASE WHEN user_id IS NULL THEN 'Анонимный пользователь' ELSE users.login END AS user_name, 
-            COUNT(*) AS count
-        FROM 
-            visit_logs 
-            # Соединяем таблицу visit_logs с таблицей users по полю user_id. 
-            # LEFT JOIN позволяет включать в итоговый результат все записи из visit_logs,
-            # даже если в таблице users нет соответствующей записи по user_id.
-            LEFT JOIN users ON visit_logs.user_id = users.id
-        # Группируем записи по имени пользователя.
-        GROUP BY 
-            user_name
-        ORDER BY count DESC LIMIT %s OFFSET %s
-        '''
+
+    query = ('SELECT users.first_name, users.last_name, users.middle_name, COUNT(visit_logs.id) AS count '
+            'FROM users RIGHT JOIN visit_logs ON users.id = visit_logs.user_id '
+            'GROUP BY users.login ORDER BY count DESC;')
     with db.connection().cursor(named_tuple=True) as cursor:
-        cursor.execute(query, (PER_PAGE, (page-1)*PER_PAGE))
+        cursor.execute(query)
         records = cursor.fetchall()
+
     query = 'SELECT COUNT(DISTINCT user_id) as count FROM visit_logs;'
     with db.connection().cursor(named_tuple=True) as cursor:
         cursor.execute(query)
@@ -171,13 +134,6 @@ def users_stat():
     last_page = ceil(count/PER_PAGE)
 
     if request.args.get('download_csv'):
-        query = ('SELECT users.login, COUNT(visit_logs.id) AS count '
-             'FROM users LEFT JOIN visit_logs ON visit_logs.user_id = users.id '
-             'GROUP BY users.login '
-             'ORDER BY COUNT(visit_logs.id) DESC')
-        with db.connection().cursor(named_tuple=True) as cursor:
-            cursor.execute(query)
-            records = cursor.fetchall()
-        f = generate_report_file(records, ['login', 'count'])
-        return send_file(f, mimetype='text/csv', as_attachment=True, download_name='logs.csv')
+        f = generate_report_file(records, ['first_name', 'last_name', 'middle_name', 'count'])
+        return send_file(f, mimetype='text/csv', as_attachment=True, download_name='users_stat.csv')
     return render_template('visits/users_stat.html', records=records, last_page=last_page, current_page=page, PER_PAGE=PER_PAGE)

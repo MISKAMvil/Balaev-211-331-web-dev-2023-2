@@ -45,14 +45,13 @@
 				<div class="btn-group" role="group">
 
 					{% if current_user.is_authenticated and current_user.can('show', user) %}
-
-					<!-- !возможно может быть ошибка -->
 					{% if (user.role_id | string == 1 | string) and (user.id == current_user.id) %}
 					<a class="btn btn-success" href="{{ url_for('show_user', user_id=user.id) }}">Просмотр</a>
-					{% else %}
-					<a class="btn btn-success" href="{{ url_for('show_user', user_id=user.id) }}">Просмотр</a>
+					{% endif %}
 					{% endif %}
 
+					{% if current_user.is_authenticated and current_user.can('show_all_view_button', user) %}
+					<a class="btn btn-success" href="{{ url_for('show_user', user_id=user.id) }}">Просмотр</a>
 					{% endif %}
 
 					{% if current_user.is_authenticated and current_user.can('edit', user) %}

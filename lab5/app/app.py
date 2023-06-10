@@ -120,7 +120,8 @@ def load_roles():
 def extract_params(params_list):
     params_dict = {}
     for param in params_list:
-        params_dict[param] = request.form[param] or None
+        # params_dict[param] = request.form[param] or None
+        params_dict[param] = request.form.get(param, None) or None
         # or None используется для избегания бага с добавлением в БД пустой строки
     return params_dict
 
@@ -200,18 +201,7 @@ def create_user():
     
     # Получение данных из запроса
     params = extract_params(PERMITED_PARAMS)
-    # --------------------------------------------------------------------------------------------
-    # ДАЛЕЕ ЗАКОМЕНТИРОВАННЫЙ КОД НЕ ИСПОЛЬЗУЕТСЯ, Т,К ВМЕСТО НЕГО ЕСТЬ ФУН-ИЯ (extract_params)
-    # or None используется для избегания бага с добавлением в БД пустой строки
-    # login = request.form['login'] or None
-    # password = request.form['password'] or None
-    # last_name = request.form['last_name'] or None
-    # first_name = request.form['first_name'] or None
-    # middle_name = request.form['middle_name'] or None
-    # role_id = request.form['role_id'] or None
-    # --------------------------------------------------------------------------------------------
 
-    # --------------------------------------------------------------------------------------------
     input_class, div_class, message = all_check_login(params['login'])
     password_input_class, password_div_class, password_message = all_check_password(params['password'])
 
@@ -239,28 +229,6 @@ def create_user():
                 # user=params, чтобы данный вставлялись в форму в случае ошибки
         else:
             return render_template('users_new.html', user=params, roles_list=load_roles(), input_class=input_class, div_class=div_class, message=message, password_input_class=password_input_class, password_div_class=password_div_class, password_message=password_message)
-    # --------------------------------------------------------------------------------------------
-    
-    # # Запрос для отправления данных в БД
-    # # с помощью конструкции %()s подставляем из словаря
-    # query = 'INSERT INTO users (login, password_hash, last_name, first_name, middle_name, role_id) VALUES (%(login)s, SHA2(%(password)s, 256), %(last_name)s, %(first_name)s, %(middle_name)s, %(role_id)s);'
-    # # Для перехвата ошибок (если ввели неуникальный логин) оборачиваем выполнение запроса в try
-    # try:
-    #     # C помощью with можно не закрывать cursor как делали это в load_user, это будет сделано автоматически
-    #     with db.connection().cursor(named_tuple=True) as cursor:
-    #         # Подставляем в верхний запрос при помощи метода execute(принимает аргумен-запрос, передаем кортеж(tuple) со значениями)
-    #         cursor.execute(query, params)
-    #         # .commit() - для окончательного добавления записи в БД
-    #         db.connection().commit()
-    #         flash('Обработка данных прошла успешно!', 'success')
-    # # mysql.connector.errors.DatabaseError - базовый класс для всех ошибок с БД (нарушение целостности, соединения и тд.)
-    # except mysql.connector.errors.DatabaseError:
-    #     # Если случались ошибка, то идет откатить ти изменения, что были внесены до этого
-    #     db.connection().rollback()  # для этого используется метод rollback()
-    #     flash('При сохранении данных возникла ошибка. Данный логин уже используется.', 'danger')
-    #     # передается список ролей для рендеринга
-    #     return render_template('users_new.html', user=params, roles_list=load_roles())
-    #     # user=params, чтобы данный вставлялись в форму в случае ошибки
     return redirect(url_for('users'))
 
 # Страничка для изменения пользователя
