@@ -144,7 +144,7 @@ def users_stat():
 
     # Формируется запрос на получение статистики по посещениям пользователей
     query = ('SELECT users.first_name, users.last_name, users.middle_name, COUNT(visit_logs.id) AS count '
-            'FROM users RIGHT JOIN visit_logs ON users.id = visit_logs.user_id '
+            'FROM users LEFT JOIN visit_logs ON users.id = visit_logs.user_id '
             'GROUP BY users.login ORDER BY count DESC;')
     with db.connection().cursor(named_tuple=True) as cursor:
         cursor.execute(query)
