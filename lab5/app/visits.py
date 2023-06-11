@@ -19,45 +19,66 @@ init_login_manager(app)
 @bp.route('/')
 @login_required
 def logging():
-    page = request.args.get('page', 1, type = int)
-    if current_user.can('show_logs'):
+    # Извлекаем номер страницы из GET-параметра 'page',
+    # если параметр не задан, то используем значение по умолчанию - 1
+    page = request.args.get('page', 1, type=int)
+
+    # Проверяем роль текущего пользователя.
+    # Если пользователь с ролью, позволяющей просматривать статистику, то
+    # отображаем все записи лога посещений;
+    if current_user.can('show_statistics'):
+        # Формируем запрос на получение всех записей лога посещений
         query = ('SELECT visit_logs.*, users.login '
                 'FROM users RIGHT JOIN visit_logs ON visit_logs.user_id = users.id '
                 'ORDER BY created_at DESC LIMIT %s OFFSET %s')
         with db.connection().cursor(named_tuple=True) as cursor:
             cursor.execute(query, (PER_PAGE, (page-1)*PER_PAGE))
+            # Получаем все записи лога посещений
             logs = cursor.fetchall()
-
+        # Формируем запрос на получение количества всех записей лога посещений
         query = 'SELECT COUNT(*) AS count FROM visit_logs'
         with db.connection().cursor(named_tuple=True) as cursor:
             cursor.execute(query)
+            # Получаем количество всех записей лога посещений
             count = cursor.fetchone().count
+    # Иначе, пользователь не может просматривать все записи лога посещений, а может просматривать
+    # только свою историю посещений
     else:
+        # Формируем запрос на получение всех записей лога посещений для конкретного пользователя
         query = ('SELECT visit_logs.*, users.login '
                 'FROM visit_logs RIGHT JOIN users ON visit_logs.user_id = users.id WHERE users.id=%s '
                 'ORDER BY created_at DESC LIMIT %s OFFSET %s')
         with db.connection().cursor(named_tuple=True) as cursor:
             cursor.execute(query, (current_user.id, PER_PAGE, (page-1)*PER_PAGE))
+            # Получаем только записи лога посещений, относящиеся к текущему пользователю
             logs = cursor.fetchall()
-
+        # Формируем запрос на получение количества записей лога посещений для текущего пользователя
         query = 'SELECT COUNT(*) AS count FROM visit_logs WHERE visit_logs.user_id = %s'
         with db.connection().cursor(named_tuple=True) as cursor:
             cursor.execute(query, (current_user.id, ))
+            # Получаем количество записей лога посещений для текущего пользователя
             count = cursor.fetchone().count
-    
+
+    # Вычисляем число страниц результата поиска
     last_page = ceil(count/PER_PAGE)
 
+    # Если пользователь запрашивает загрузку CSV-файла, он может получать все записи
     if request.args.get('download_csv'):
+        # Формируем запрос на получение всех записей лога посещений
         query = ('SELECT visit_logs.*, users.login '
                  'FROM users RIGHT JOIN visit_logs ON visit_logs.user_id = users.id '
                  'ORDER BY created_at DESC')
         with db.connection().cursor(named_tuple=True) as cursor:
             cursor.execute(query)
+            # Получаем все записи лога посещений
             records = cursor.fetchall()
+        # Генерируем временный файл, содержащий результаты запроса
         f = generate_report_file(records, ['path', 'login', 'created_at'])
+        # Отправляем файл для скачивания пользователю
         return send_file(f, mimetype='text/csv', as_attachment=True, download_name='logs.csv')
 
-    return render_template('visits/logs.html', logs = logs, last_page = last_page, current_page = page, PER_PAGE=PER_PAGE)
+    # Отображаем страницу с записями лога посещений
+    return render_template('visits/logs.html', logs=logs, last_page=last_page, current_page=page, PER_PAGE=PER_PAGE)
 
 
 # Функция generate_report_file() предназначена для преобразования списка записей `records` в CSV-файл, содержащий данные об этих записях.
@@ -118,22 +139,33 @@ def pages_stat():
 @login_required
 @permission_check('show_statistics')
 def users_stat():
+    # Параметр `page` извлекается из GET-параметра, если не указано, используется значение 1
     page = request.args.get('page', 1, type=int)
 
+    # Формируется запрос на получение статистики по посещениям пользователей
     query = ('SELECT users.first_name, users.last_name, users.middle_name, COUNT(visit_logs.id) AS count '
             'FROM users RIGHT JOIN visit_logs ON users.id = visit_logs.user_id '
             'GROUP BY users.login ORDER BY count DESC;')
     with db.connection().cursor(named_tuple=True) as cursor:
         cursor.execute(query)
+        # получение всех строк, удовлетворяющих условиям запроса
         records = cursor.fetchall()
 
+    # Формируется запрос на получение количества уникальных пользователей, совершивших хотя бы одно посещение
     query = 'SELECT COUNT(DISTINCT user_id) as count FROM visit_logs;'
     with db.connection().cursor(named_tuple=True) as cursor:
         cursor.execute(query)
+        # Получение единственной строки с количеством
         count = cursor.fetchone().count
+
+    # Вычисляем число страниц результата поиска
     last_page = ceil(count/PER_PAGE)
 
+    # Если запрос на скачивание отчета в формате CSV
     if request.args.get('download_csv'):
+        # Отправляем файл для скачивания пользователю
         f = generate_report_file(records, ['first_name', 'last_name', 'middle_name', 'count'])
         return send_file(f, mimetype='text/csv', as_attachment=True, download_name='users_stat.csv')
+
+    # Возвращаем шаблон со статистикой посещений пользователей
     return render_template('visits/users_stat.html', records=records, last_page=last_page, current_page=page, PER_PAGE=PER_PAGE)

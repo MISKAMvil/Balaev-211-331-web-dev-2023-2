@@ -1,8 +1,8 @@
 SECRET_KEY = '3f611345ffbe00868b337e423e771e600d80fba91d1a32ea8e9dc4c67abb277a'
 
-MYSQL_USER = 'std_1768_2023lab4'
+MYSQL_USER = 'std_1768_2023lab5_test'
 MYSQL_PASSWORD = '13249087'
 MYSQL_HOST = 'std-mysql.ist.mospolytech.ru'
-MYSQL_DATABASE = 'std_1768_2023lab4'
+MYSQL_DATABASE = 'std_1768_2023lab5_test'
 
 ADMIN_ROLE_ID = 2
