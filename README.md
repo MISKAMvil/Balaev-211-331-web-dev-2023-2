@@ -4,3 +4,4 @@
 ЛР3 - http://2023lab3.std-1768.ist.mospolytech.ru  
 ЛР4 - http://2023lab4.std-1768.ist.mospolytech.ru  
 ЛР5 - http://2023lab5.std-1768.ist.mospolytech.ru  
+ЛР6 - http://2023lab6.std-1768.ist.mospolytech.ru  
